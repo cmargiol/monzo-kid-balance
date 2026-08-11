@@ -1,0 +1,2 @@
+# Copy to .dev.vars (gitignored) for local `npx wrangler dev`.
+DEVICE_TOKEN=dev-token-change-me
