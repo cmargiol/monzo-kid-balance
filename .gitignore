@@ -1,0 +1,17 @@
+# Secrets — never commit. The templates (*.example) are the committed shape.
+firmware/src/secrets.h
+worker/.dev.vars
+
+# Cloudflare / Node
+worker/node_modules/
+worker/.wrangler/
+
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+
+# Python (local tooling, if any)
+.venv/
+
+# OS noise
+.DS_Store
