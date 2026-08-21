@@ -1,2 +1,7 @@
 # Copy to .dev.vars (gitignored) for local `npx wrangler dev`.
 DEVICE_TOKEN=dev-token-change-me
+ADMIN_TOKEN=dev-admin-change-me
+# Real values only needed to test the OAuth flow locally; any string lets
+# the Worker boot.
+MONZO_CLIENT_ID=oauth2client_dev
+MONZO_CLIENT_SECRET=dev-secret
