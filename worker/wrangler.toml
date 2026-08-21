@@ -2,8 +2,17 @@ name = "monzo-kid-balance"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
 
+# Create the namespace once with:  npx wrangler kv namespace create KV
+# then paste the id it prints below. `wrangler dev` ignores the id and uses
+# a local simulated store.
+kv_namespaces = [
+  { binding = "KV", id = "REPLACE_WITH_KV_NAMESPACE_ID" },
+]
+
 # Secrets (set with `npx wrangler secret put <NAME>`, never in this file):
-#   DEVICE_TOKEN — long random bearer token the gadget sends on every request.
-#     Generate with: openssl rand -base64 32
+#   DEVICE_TOKEN        — bearer token the gadget sends (openssl rand -base64 32)
+#   ADMIN_TOKEN         — ?admin= token for the setup/health routes (same recipe)
+#   MONZO_CLIENT_ID     — from developers.monzo.com (Confidential client)
+#   MONZO_CLIENT_SECRET — from developers.monzo.com
 #
-# Later PRs add: KV namespace, cron trigger, Monzo OAuth secrets.
+# Later PRs add: cron trigger + webhook key.
