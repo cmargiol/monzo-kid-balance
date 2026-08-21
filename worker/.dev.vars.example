@@ -5,3 +5,4 @@ ADMIN_TOKEN=dev-admin-change-me
 # the Worker boot.
 MONZO_CLIENT_ID=oauth2client_dev
 MONZO_CLIENT_SECRET=dev-secret
+ACCOUNT_ID=acc_dev

@@ -1,6 +1,7 @@
 # Phase 0 spike — is a Monzo Under-16s account visible via the developer API?
 
-**Status: OPEN — findings not yet recorded.**
+**Status: RESOLVED (2026-08-21) — YES on all counts. `MODE=account`; the pot
+fallback is not needed and was dropped from the implementation.**
 
 Monzo's Under-16s account (launched July 2024) is parent-managed, has no sort
 code/account number, and legally the money belongs to the parent. Whether it
@@ -28,15 +29,23 @@ value, not the design.
 
 ## Findings
 
-_Fill in after running the steps:_
-
-- Date tested:
-- Accounts returned (types/descriptions only — **do not paste real account ids
-  into this public repo**):
-- Child account visible? (yes/no):
-- If visible — `/balance` works? `/transactions` works?
-- Pots listing works on parent account? (yes/no):
-- **Decision: `MODE=account` / `MODE=pot`**
+- **Date tested:** 2026-08-21, via the API playground with the parent's login.
+- **Child account visible?** **Yes** — the Under-16s ("youth") account appears
+  in the parent's `GET /accounts` response.
+- **`/balance` on the child account:** **works**, returns pence as usual.
+  (First attempt looked like `forbidden.insufficient_permissions`, caused by a
+  stray space in the `account_id` parameter — Monzo returns a permissions error,
+  not a validation error, for malformed ids. Worth remembering when debugging.)
+- **`/transactions` on the child account:** **works.** Notable shapes:
+  - Transactions come back **oldest-first** — "latest 3" means the tail.
+  - Pocket-money transfers have `merchant: null`; the human-readable name is in
+    `counterparty.name` (falling back merchant → counterparty → description is
+    the right display order).
+  - `metadata` marks these clearly (`p2p_is_pocket_money`,
+    `p2p_young_transfer_direction: parent_account_to_young_account`).
+  - No `account_balance` field on transactions — fine, `/balance` works.
+- **Decision: `MODE=account`.** The pot fallback (below) is retained only as
+  historical context and is not implemented.
 
 ## Plan B, for reference
 
