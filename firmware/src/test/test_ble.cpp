@@ -188,6 +188,12 @@ namespace TEST
 
         DisPlayBLESend();
 
+        // Free Bluedroid's ~80-100KB of heap once this screen exits: the
+        // Balance app's TLS handshake needs ~45KB contiguous. deinit(false)
+        // (not true) so BLE can re-init when this screen is visited again.
+        BLEDevice::deinit(false);
+        is_ble_inited = false;
+
         printf("quit ble test\n");
     }
 

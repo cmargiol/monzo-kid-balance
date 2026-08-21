@@ -105,11 +105,10 @@ namespace TEST
             // Delete the scan result to free memory for code below.
             WiFi.scanDelete();
 
-            WiFi.disconnect(true);
-            esp_wifi_disconnect();
-            esp_wifi_stop();
-            esp_wifi_deinit();
-            esp_wifi_clear_ap_list();
+            // Power the radio down without esp_wifi_deinit(): raw deinit
+            // bypasses the Arduino WiFi library's state tracking and breaks
+            // the next WiFi.begin() (which the Balance app relies on).
+            WiFi.mode(WIFI_OFF);
         }
 
         /* Display result */
