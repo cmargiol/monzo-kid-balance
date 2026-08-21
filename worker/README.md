@@ -1,8 +1,10 @@
 # Worker
 
 Cloudflare Worker that authenticates with Monzo, caches the balance, and serves
-it to the gadget. Current state: OAuth flow + token storage done; `/display`
-still returns a mock until the live-data PR.
+it to the gadget. A cron tick every 15 minutes refreshes OAuth tokens (early,
+45 min before expiry) and rebuilds the cached `/display` payload from live
+`/balance` + `/transactions` data; `/display` itself never calls Monzo, so it
+stays fast and keeps serving (stale) data even if Monzo is down.
 
 ## Routes
 
@@ -58,6 +60,16 @@ npx wrangler secret put MONZO_CLIENT_SECRET
    with `insufficient_permissions` (this is Monzo's SCA).
 3. Visit `/admin/accounts?admin=<ADMIN_TOKEN>` to see every account and pot
    the grant can read; `/status?admin=<ADMIN_TOKEN>` for health.
+4. Copy the child account's `acc_…` id from that response and store it:
+   `npx wrangler secret put ACCOUNT_ID` (a secret, not a var, to keep
+   identifiers out of this public repo). The next cron tick (≤15 min) populates
+   `/display` with real data.
+
+## Tests
+
+```bash
+cd worker && npm test    # pure-function tests for the formatting layer
+```
 
 ## Monzo quirks the code is built around
 

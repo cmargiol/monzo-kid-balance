@@ -15,30 +15,27 @@
 import {
   AUTH_BASE,
   exchangeCode,
+  ensureFreshToken,
   loadTokens,
   monzoGet,
   getStatus,
 } from "./monzo.js";
+import { refreshDisplayData, loadDisplay } from "./data.js";
 
-// Payload contract with the firmware. `state` is one of:
+// The /display payload contract with the firmware. `state` is one of:
 //   ok           — show balance/tx as given
 //   needs_reauth — show the "ask a grown-up to re-approve" screen
 //   error        — show last-good data with a "stale" badge
 // Strings are pre-formatted server-side; the device does zero money math.
-// Mock until the live-data PR replaces it with the KV-cached payload.
-const MOCK_DISPLAY = {
-  state: "ok",
-  balance: "£12.34",
-  today: "£1.20 spent today",
-  updated: "12:00",
-  tx: [
-    ["Toy Shop", "-£4.99"],
-    ["Pocket money", "+£2.00"],
-    ["Bus", "-£1.75"],
-  ],
-};
 
 export default {
+  /** Cron: the ONLY place tokens are refreshed (single-writer rule). */
+  async scheduled(_event, env, _ctx) {
+    const token = await ensureFreshToken(env);
+    if (!token) return; // not connected yet, or needs re-auth (status is set)
+    await refreshDisplayData(env, token);
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method !== "GET") return json({ error: "not found" }, 404);
@@ -48,7 +45,9 @@ export default {
         if (!(await isDevice(request, env))) {
           return json({ error: "unauthorized" }, 401);
         }
-        return json(MOCK_DISPLAY);
+        // Served from KV cache only — never calls Monzo inline, so it's fast
+        // and keeps working (stale) even when Monzo is down.
+        return json(await loadDisplay(env));
 
       case "/oauth/start":
         if (!isAdmin(url, env)) return json({ error: "unauthorized" }, 401);

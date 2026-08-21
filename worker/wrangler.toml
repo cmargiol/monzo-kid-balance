@@ -9,10 +9,18 @@ kv_namespaces = [
   { binding = "KV", id = "REPLACE_WITH_KV_NAMESPACE_ID" },
 ]
 
+# Refresh cadence; the webhook (next PR) makes updates near-instant, this is
+# the backstop. Also the only writer allowed to refresh OAuth tokens.
+[triggers]
+crons = ["*/15 * * * *"]
+
 # Secrets (set with `npx wrangler secret put <NAME>`, never in this file):
 #   DEVICE_TOKEN        — bearer token the gadget sends (openssl rand -base64 32)
 #   ADMIN_TOKEN         — ?admin= token for the setup/health routes (same recipe)
 #   MONZO_CLIENT_ID     — from developers.monzo.com (Confidential client)
 #   MONZO_CLIENT_SECRET — from developers.monzo.com
+#   ACCOUNT_ID          — the child account's acc_… id (from /admin/accounts).
+#                         A secret rather than a var to keep identifiers out of
+#                         this public repo.
 #
-# Later PRs add: cron trigger + webhook key.
+# Next PR adds: webhook key.
