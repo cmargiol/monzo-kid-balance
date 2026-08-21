@@ -14,7 +14,9 @@ stays fast and keeps serving (stale) data even if Monzo is down.
 | `GET /oauth/start?admin=<ADMIN_TOKEN>` | admin | Begin Monzo OAuth (open in a browser) |
 | `GET /oauth/callback` | CSRF state | Redirect target; stores the token pair |
 | `GET /admin/accounts?admin=<ADMIN_TOKEN>` | admin | Live dump of accounts + pots — use this to pick the account/pot id |
-| `GET /status?admin=<ADMIN_TOKEN>` | admin | Token age/expiry, needs-reauth flag, last error |
+| `GET /status?admin=<ADMIN_TOKEN>` | admin | Token age/expiry, needs-reauth flag, last poll result |
+| `POST /webhook/monzo?key=<WEBHOOK_KEY>` | shared key | Monzo `transaction.created` doorbell → background cache refresh |
+| `GET /admin/register-webhook?admin=<ADMIN_TOKEN>` | admin | One-time, idempotent webhook registration with Monzo |
 
 ## Local dev
 
@@ -64,6 +66,15 @@ npx wrangler secret put MONZO_CLIENT_SECRET
    `npx wrangler secret put ACCOUNT_ID` (a secret, not a var, to keep
    identifiers out of this public repo). The next cron tick (≤15 min) populates
    `/display` with real data.
+5. Near-instant updates (optional but nice — balance changes seconds after the
+   card is tapped): `openssl rand -hex 24` → `npx wrangler secret put
+   WEBHOOK_KEY`, redeploy, then visit
+   `/admin/register-webhook?admin=<ADMIN_TOKEN>` once.
+6. Re-auth nags (recommended): pick an unguessable topic name
+   (`openssl rand -hex 8`) → `npx wrangler secret put NTFY_TOPIC`, and
+   subscribe to that topic in the free [ntfy](https://ntfy.sh) phone app.
+   When Monzo's ~90-day SCA lapse hits, you get one push per day telling you
+   the re-approval steps instead of a silently stale gadget.
 
 ## Tests
 

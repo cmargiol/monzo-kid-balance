@@ -21,6 +21,7 @@ import {
   getStatus,
 } from "./monzo.js";
 import { refreshDisplayData, loadDisplay } from "./data.js";
+import { nagIfReauthNeeded } from "./notify.js";
 
 // The /display payload contract with the firmware. `state` is one of:
 //   ok           — show balance/tx as given
@@ -32,12 +33,18 @@ export default {
   /** Cron: the ONLY place tokens are refreshed (single-writer rule). */
   async scheduled(_event, env, _ctx) {
     const token = await ensureFreshToken(env);
-    if (!token) return; // not connected yet, or needs re-auth (status is set)
-    await refreshDisplayData(env, token);
+    if (token) await refreshDisplayData(env, token);
+    await nagIfReauthNeeded(env); // covers both refresh failure and data 403s
   },
 
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Monzo pushes transaction.created events here for near-instant updates.
+    if (url.pathname === "/webhook/monzo" && request.method === "POST") {
+      return webhook(url, env, ctx);
+    }
+
     if (request.method !== "GET") return json({ error: "not found" }, 404);
 
     switch (url.pathname) {
@@ -59,6 +66,10 @@ export default {
       case "/admin/accounts":
         if (!isAdmin(url, env)) return json({ error: "unauthorized" }, 401);
         return adminAccounts(env);
+
+      case "/admin/register-webhook":
+        if (!isAdmin(url, env)) return json({ error: "unauthorized" }, 401);
+        return registerWebhook(url, env);
 
       case "/status":
         if (!isAdmin(url, env)) return json({ error: "unauthorized" }, 401);
@@ -143,6 +154,63 @@ async function adminAccounts(env) {
   }
 }
 
+// ---------------------------------------------------------------- Webhook
+
+/**
+ * Monzo webhooks are unsigned, so the URL carries a shared secret (?key=).
+ * We treat the event purely as a "something changed" doorbell: respond 200
+ * immediately and re-fetch from the API in the background — never trusting
+ * the payload, and NEVER refreshing tokens here (single-writer rule; if the
+ * access token is stale the 15-min cron catches up).
+ */
+async function webhook(url, env, ctx) {
+  if (!env.WEBHOOK_KEY || !timingSafeEqual(url.searchParams.get("key") ?? "", env.WEBHOOK_KEY)) {
+    return json({ error: "unauthorized" }, 401);
+  }
+  ctx.waitUntil(
+    (async () => {
+      const tokens = await loadTokens(env);
+      if (!tokens || Date.now() >= tokens.expires_at) return;
+      await refreshDisplayData(env, tokens.access_token);
+    })()
+  );
+  return json({ ok: true });
+}
+
+/**
+ * One-time setup: registers this Worker's webhook with Monzo (idempotent —
+ * skips if a webhook with our URL is already registered).
+ */
+async function registerWebhook(url, env) {
+  const tokens = await loadTokens(env);
+  if (!tokens) return json({ error: "no tokens stored — run /oauth/start first" }, 409);
+  if (!env.ACCOUNT_ID) return json({ error: "ACCOUNT_ID secret not set" }, 409);
+  if (!env.WEBHOOK_KEY) return json({ error: "WEBHOOK_KEY secret not set" }, 409);
+
+  const hookUrl = `${url.origin}/webhook/monzo?key=${env.WEBHOOK_KEY}`;
+  try {
+    const existing = await monzoGet(
+      env,
+      tokens.access_token,
+      `/webhooks?account_id=${encodeURIComponent(env.ACCOUNT_ID)}`
+    );
+    if (existing.webhooks?.some((w) => w.url === hookUrl)) {
+      return json({ ok: true, note: "webhook already registered" });
+    }
+    const res = await fetch("https://api.monzo.com/webhooks", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+      body: new URLSearchParams({ account_id: env.ACCOUNT_ID, url: hookUrl }),
+    });
+    if (!res.ok) {
+      return json({ error: `webhook registration failed: ${res.status} ${await res.text()}` }, 502);
+    }
+    return json({ ok: true, registered: true });
+  } catch (e) {
+    return json({ error: String(e), needsReauth: e.needsReauth ?? false }, 502);
+  }
+}
+
 async function statusReport(env) {
   const tokens = await loadTokens(env);
   const status = await getStatus(env);
@@ -151,6 +219,7 @@ async function statusReport(env) {
     tokenAgeMinutes: tokens ? Math.round((Date.now() - tokens.updated_at) / 60000) : null,
     tokenExpiresInMinutes: tokens ? Math.round((tokens.expires_at - Date.now()) / 60000) : null,
     needsReauth: status.needsReauth ?? false,
+    lastPollOk: status.lastPollOk ?? null,
     lastError: status.lastError ?? null,
   });
 }

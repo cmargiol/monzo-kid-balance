@@ -6,3 +6,5 @@ ADMIN_TOKEN=dev-admin-change-me
 MONZO_CLIENT_ID=oauth2client_dev
 MONZO_CLIENT_SECRET=dev-secret
 ACCOUNT_ID=acc_dev
+WEBHOOK_KEY=dev-webhook-key
+# NTFY_TOPIC unset in dev: nags are skipped when not configured

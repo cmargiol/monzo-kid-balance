@@ -22,5 +22,8 @@ crons = ["*/15 * * * *"]
 #   ACCOUNT_ID          — the child account's acc_… id (from /admin/accounts).
 #                         A secret rather than a var to keep identifiers out of
 #                         this public repo.
-#
-# Next PR adds: webhook key.
+#   WEBHOOK_KEY         — shared secret in the webhook URL (Monzo webhooks are
+#                         unsigned); openssl rand -hex 24
+#   NTFY_TOPIC          — optional: ntfy.sh topic for "needs re-approval" nags.
+#                         Pick something unguessable (openssl rand -hex 8) and
+#                         subscribe to it in the ntfy phone app.
