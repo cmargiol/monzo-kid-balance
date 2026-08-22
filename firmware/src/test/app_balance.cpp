@@ -451,23 +451,27 @@ namespace TEST
 
             if (btnA.pressed())
             {
-                // Short press toggles screens; long press refreshes (live)
-                // or cycles display states (mock preview).
+                // Short press (acts on release) toggles screens; a long press
+                // fires AT the 600ms threshold, while still held — waiting
+                // for release made every action feel a second late.
                 uint32_t t0 = millis();
+                bool longFired = false;
                 while (!btnA.read()) // still held
                 {
+                    if (!longFired && millis() - t0 > 600)
+                    {
+                        longFired = true;
+                        _tone(4000, 80); // feedback under the finger
+#ifdef BALANCE_LIVE
+                        _lastFetch = 0; // force refresh on next loop pass
+#else
+                        _data.state = (BalanceState)((_data.state + 1) % 3);
+                        balance_draw(txScreen); // show the new state immediately
+#endif
+                    }
                     delay(10);
                 }
-                if (millis() - t0 > 800)
-                {
-#ifdef BALANCE_LIVE
-                    _lastFetch = 0; // force refresh on next loop pass
-#else
-                    _data.state = (BalanceState)((_data.state + 1) % 3);
-#endif
-                    _tone(4000, 80);
-                }
-                else
+                if (!longFired)
                 {
                     txScreen = !txScreen;
                     _tone(5000, 50);
