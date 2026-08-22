@@ -424,13 +424,10 @@ namespace TEST
         while (1)
         {
 #ifdef BALANCE_LIVE
-            if (configured && !_inFlight && (_lastFetch == 0 || millis() - _lastFetch > FETCH_EVERY_MS))
-            {
-                // Heap headroom for the ~50KB TLS handshake comes from the
-                // sprite being 8-bit (see test_lcd.cpp) — no sprite juggling.
-                balance_fetch();
-                dirty = true; // in-flight dot appears
-            }
+            // Completion MUST be handled before deciding whether a fetch is
+            // due: balance_fetch() clears _done, so in the old order a fresh
+            // fetch started first and swallowed every completion — _lastFetch
+            // never advanced and the device fetch-looped forever.
             if (_done)
             {
                 _done = false;
@@ -451,6 +448,13 @@ namespace TEST
                     _data = _staging; // Worker sent last-good strings + state
                 }
                 dirty = true;
+            }
+            if (configured && !_inFlight && (_lastFetch == 0 || millis() - _lastFetch > FETCH_EVERY_MS))
+            {
+                // Heap headroom for the ~50KB TLS handshake comes from the
+                // sprite being 8-bit (see test_lcd.cpp) — no sprite juggling.
+                balance_fetch();
+                dirty = true; // in-flight dot appears
             }
             if (wasInFlight != _inFlight)
             {
