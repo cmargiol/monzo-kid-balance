@@ -14,8 +14,8 @@ decisions: see `README.md`; Monzo API findings: `docs/spike-notes.md`.
 | 2 | Worker skeleton: mock `/display` + bearer auth | ✅ merged (#2→#3) | 1 |
 | 3 | Worker OAuth: login flow, KV token rotation, admin routes | ✅ merged (#4) | 2 |
 | 4 | Worker live data: balance/tx fetch, formatting, cron | ✅ merged (#5) | 3 |
-| 5 | Worker resilience: webhook, re-auth nags, staleness detection | 🔍 in review (#6) | 4 |
-| 6 | Firmware import: vendored factory demo + upstream fixes | 🔍 in review (#7) | — (independent of 2–5) |
+| 5 | Worker resilience: webhook, re-auth nags | ✅ merged (#6); staleness + review fixes re-landing in #9 | 4 |
+| 6 | Firmware import: vendored factory demo + upstream fixes | ✅ merged (#7) | — (independent of 2–5) |
 | 7 | Balance app rendering mock data in the screen cycle | ⏳ next | 6 |
 | 8 | Device↔Worker: HTTPS + CA bundle + NTP, NVS cache, error screens | ⏳ | 7, and Worker deployed |
 | 9 | Transactions screen + dual power modes | ⏳ | 8 |
