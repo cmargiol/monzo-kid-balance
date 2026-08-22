@@ -325,6 +325,7 @@ namespace TEST
         if (!ensure_wifi() || !ensure_time())
             return;
 
+        uint32_t heapBefore = ESP.getFreeHeap();
         WiFiClientSecure client;
         client.setCACert(CA_CERT_BUNDLE);
         HTTPClient http;
@@ -335,7 +336,11 @@ namespace TEST
         int code = http.GET();
         if (code != 200)
         {
-            printf("balance fetch: HTTP %d\n", code);
+            char tlsErr[128] = {0};
+            client.lastError(tlsErr, sizeof(tlsErr));
+            printf("balance fetch: HTTP %d (%s; tls: %s; heap %u->%u)\n",
+                   code, http.errorToString(code).c_str(), tlsErr,
+                   heapBefore, ESP.getFreeHeap());
             http.end();
             return;
         }
