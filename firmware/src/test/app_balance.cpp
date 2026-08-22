@@ -53,6 +53,40 @@ namespace TEST
         {"-£4.99", "+£2.00", "-£1.75"},
     };
 
+    /**
+     * No font bundled with M5GFX 0.1.11 contains "£" (DejaVu* and Font0 are
+     * ASCII 0x20-0x7E; the efont CJK sets skip Latin-1), so the symbol is
+     * drawn geometrically: hook, stem, crossbar, base. h = glyph height.
+     * Returns the glyph's advance width.
+     */
+    static int drawPound(LGFX_Sprite *s, int x, int y, int h, uint16_t color)
+    {
+        int t = h / 7;              // stroke thickness
+        int w = (h * 3) / 5;        // glyph width
+        int stemX = x + w / 4;
+        s->fillRoundRect(stemX, y + t / 2, t, h - t, t / 3, color);          // stem
+        s->fillRoundRect(stemX, y, w - w / 4, t, t / 3, color);              // top hook
+        s->fillRoundRect(x, y + (h - t) / 2, (w * 3) / 4, t, t / 3, color);  // crossbar
+        s->fillRoundRect(x, y + h - t, w, t, t / 3, color);                  // base
+        return w + h / 10;
+    }
+
+    /** Copy `in` to `out` minus any UTF-8 "£" (0xC2 0xA3) — fonts lack it. */
+    static void stripPound(const char *in, char *out, size_t n)
+    {
+        size_t o = 0;
+        for (size_t i = 0; in[i] != '\0' && o < n - 1; i++)
+        {
+            if ((uint8_t)in[i] == 0xC2 && (uint8_t)in[i + 1] == 0xA3)
+            {
+                i++; // skip both bytes
+                continue;
+            }
+            out[o++] = in[i];
+        }
+        out[o] = '\0';
+    }
+
     void TEST::balance_draw(bool txScreen)
     {
         Disbuff->fillRect(0, 0, 240, 135, TFT_BLACK);
@@ -96,8 +130,10 @@ namespace TEST
                 Disbuff->setCursor(6, y);
                 Disbuff->printf("%s", _mock.txName[i]);
                 bool credit = _mock.txAmt[i][0] == '+';
+                char amt[12];
+                stripPound(_mock.txAmt[i], amt, sizeof(amt)); // no £ glyph in Font0
                 Disbuff->setTextColor(credit ? TFT_GREEN : TFT_WHITE);
-                Disbuff->drawRightString(_mock.txAmt[i], 234, y, 1);
+                Disbuff->drawRightString(amt, 234, y, 1);
             }
             if (_mock.txCount == 0)
             {
@@ -109,16 +145,37 @@ namespace TEST
         }
         else
         {
-            // The balance, as big as the unicode font allows (needs "£").
-            Disbuff->setFont(&fonts::efontCN_24);
-            Disbuff->setTextSize(2);
-            Disbuff->setTextColor(TFT_WHITE);
-            Disbuff->drawCenterString(_mock.balance, 120, 42);
+            // Big balance: hand-drawn £ + DejaVu digits, centered as one unit.
+            char digits[16];
+            bool negative = _mock.balance[0] == '-';
+            stripPound(negative ? _mock.balance + 1 : _mock.balance, digits, sizeof(digits));
 
+            Disbuff->setFont(&fonts::DejaVu56);
+            Disbuff->setTextSize(1);
+            int poundH = 40;
+            int poundW = (poundH * 3) / 5 + poundH / 10;
+            if (poundW + Disbuff->textWidth(digits) > 232)
+            {
+                Disbuff->setFont(&fonts::DejaVu40); // fits £100+ balances
+            }
+            int total = (negative ? 18 : 0) + poundW + Disbuff->textWidth(digits);
+            int x = (240 - total) / 2;
+            int y = 44;
+            Disbuff->setTextColor(TFT_WHITE);
+            if (negative)
+            {
+                Disbuff->fillRoundRect(x, y + poundH / 2 - 3, 12, 6, 2, TFT_WHITE);
+                x += 18;
+            }
+            x += drawPound(Disbuff, x, y + 8, poundH, TFT_WHITE);
+            Disbuff->drawString(digits, x, y);
+
+            char today[32];
+            stripPound(_mock.today, today, sizeof(today));
             Disbuff->setFont(&fonts::Font0);
             Disbuff->setTextSize(2);
             Disbuff->setTextColor(Disbuff->color565(150, 150, 150));
-            Disbuff->drawCenterString(_mock.today, 120, 100);
+            Disbuff->drawCenterString(today, 120, 108);
         }
 
         if (_mock.state == BAL_STALE)
