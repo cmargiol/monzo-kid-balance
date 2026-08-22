@@ -388,8 +388,8 @@ namespace TEST
             return false;
         _inFlight = true;
         _done = false;
-        // 16KB stack: TLS handshake peaks ~8KB of stack (buffers are heap).
-        xTaskCreatePinnedToCore(fetch_task, "balfetch", 16384, nullptr, 1, nullptr, 0);
+        // 12KB stack: TLS handshake peaks ~8KB of stack (buffers are heap).
+        xTaskCreatePinnedToCore(fetch_task, "balfetch", 12288, nullptr, 1, nullptr, 0);
         return true;
     }
 
@@ -418,7 +418,6 @@ namespace TEST
             booted = true;
         }
         const uint32_t FETCH_EVERY_MS = 60000;
-        bool wasInFlight = _inFlight;
 #endif
 
         while (1)
@@ -426,13 +425,23 @@ namespace TEST
 #ifdef BALANCE_LIVE
             if (configured && !_inFlight && (_lastFetch == 0 || millis() - _lastFetch > FETCH_EVERY_MS))
             {
+                // Field-tested: the TLS handshake needs ~50KB and the 65KB
+                // screen sprite is the only block that size — with it alive,
+                // mbedtls fails with "Memory allocation failed" (~69KB free,
+                // fragmented). So: push a final frame with the in-flight dot,
+                // free the sprite for the fetch's duration (the panel keeps
+                // showing the last pushed frame), rebuild it when done.
+                balance_draw(txScreen);
+                Disbuff->fillCircle(206, 12, 4, TFT_SKYBLUE);
+                Displaybuff();
+                Disbuff->deleteSprite();
                 balance_fetch();
-                dirty = true;
             }
             if (_done)
             {
                 _done = false;
                 _lastFetch = millis();
+                Disbuff->createSprite(lcd.width(), lcd.height());
                 if (_staging.state == BAL_OK)
                 {
                     _data = _staging;
@@ -450,13 +459,11 @@ namespace TEST
                 }
                 dirty = true;
             }
-            if (wasInFlight != _inFlight)
-            {
-                wasInFlight = _inFlight;
-                dirty = true; // header dot appears/disappears
-            }
 #endif
-            if (dirty)
+            // Draws are deferred while a fetch is in flight (live mode frees
+            // the sprite during the fetch); button actions still register and
+            // render as soon as the fetch completes.
+            if (dirty && !_inFlight)
             {
                 balance_draw(txScreen);
                 dirty = false;
