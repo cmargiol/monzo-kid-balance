@@ -15,10 +15,14 @@ namespace TEST
 
     void TEST::hardware_init()
     {
-        /* Hold pwr pin */
+        /* Hold pwr pin. The pad may still be latched high by the
+           gpio_hold_en() we set before esp_restart() (without that latch the
+           pin drops during reset and the board cuts its own power on
+           battery); re-drive it high, then release the latch. */
         gpio_reset_pin((gpio_num_t)POWER_HOLD_PIN);
         pinMode(POWER_HOLD_PIN, OUTPUT);
         digitalWrite(POWER_HOLD_PIN, HIGH);
+        gpio_hold_dis((gpio_num_t)POWER_HOLD_PIN);
 
         Wire1.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     }
