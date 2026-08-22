@@ -22,6 +22,8 @@
 #include <BLEUtils.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <Preferences.h> // here (not app_balance.cpp): the LDF scans this
+                         // header reliably but misses src/test/*.cpp additions
 
 #include <cplus_RTC.h>
 
@@ -185,6 +187,7 @@ namespace TEST
         /* Balance app (ours — see app_balance.cpp) */
         void balance_app();
         void balance_draw(bool txScreen);
+        bool balance_fetch(); // live mode only: kicks off the async fetch task
 
         /* Wifi */
         void wifi_init();
