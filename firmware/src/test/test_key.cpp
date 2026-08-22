@@ -167,6 +167,12 @@ namespace TEST
 
             printf("rebooting...\n");
 
+            // Latch the power-hold pad through the reset: esp_restart()
+            // releases all GPIOs, and without this the board powers itself
+            // off (on battery) instead of rebooting. hardware_init()
+            // releases the latch after boot.
+            gpio_hold_en((gpio_num_t)POWER_HOLD_PIN);
+
             display->fillScreen(TFT_BLACK);
             display->setCursor(0, 10);
             display->setFont(&fonts::Font0);

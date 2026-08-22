@@ -175,6 +175,10 @@ namespace TEST
 
         /* Full scren sprite */
         Disbuff = new LGFX_Sprite(&lcd);
+        // 8-bit color halves the framebuffer (65KB -> 32KB) so the Balance
+        // app's TLS handshake (~50KB of heap) fits alongside it. The UI is
+        // flat colors; the depth change is not visible in practice.
+        Disbuff->setColorDepth(8);
         Disbuff->createSprite(lcd.width(), lcd.height());
     }
 

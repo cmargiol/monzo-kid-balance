@@ -1,6 +1,7 @@
 # Secrets — never commit. The templates (*.example) are the committed shape.
 firmware/src/secrets.h
 worker/.dev.vars
+worker/.dev.vars.production-backup
 
 # Cloudflare / Node
 worker/node_modules/
