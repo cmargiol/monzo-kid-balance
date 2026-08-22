@@ -18,6 +18,7 @@ import {
   ensureFreshToken,
   loadTokens,
   monzoGet,
+  monzoPost,
   getStatus,
 } from "./monzo.js";
 import { refreshDisplayData, loadDisplay } from "./data.js";
@@ -171,7 +172,9 @@ async function webhook(url, env, ctx) {
     (async () => {
       const tokens = await loadTokens(env);
       if (!tokens || Date.now() >= tokens.expires_at) return;
-      await refreshDisplayData(env, tokens.access_token);
+      // quiet: update the cache on success, touch nothing on failure —
+      // status writes and degradation are the cron's job alone.
+      await refreshDisplayData(env, tokens.access_token, { quiet: true });
     })()
   );
   return json({ ok: true });
@@ -184,10 +187,14 @@ async function webhook(url, env, ctx) {
 async function registerWebhook(url, env) {
   const tokens = await loadTokens(env);
   if (!tokens) return json({ error: "no tokens stored — run /oauth/start first" }, 409);
+  if (Date.now() >= tokens.expires_at) {
+    // Refreshing here would race the cron writer; freshness is cron's job.
+    return json({ error: "access token expired — wait for the next cron refresh" }, 503);
+  }
   if (!env.ACCOUNT_ID) return json({ error: "ACCOUNT_ID secret not set" }, 409);
   if (!env.WEBHOOK_KEY) return json({ error: "WEBHOOK_KEY secret not set" }, 409);
 
-  const hookUrl = `${url.origin}/webhook/monzo?key=${env.WEBHOOK_KEY}`;
+  const hookUrl = `${url.origin}/webhook/monzo?key=${encodeURIComponent(env.WEBHOOK_KEY)}`;
   try {
     const existing = await monzoGet(
       env,
@@ -197,14 +204,10 @@ async function registerWebhook(url, env) {
     if (existing.webhooks?.some((w) => w.url === hookUrl)) {
       return json({ ok: true, note: "webhook already registered" });
     }
-    const res = await fetch("https://api.monzo.com/webhooks", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-      body: new URLSearchParams({ account_id: env.ACCOUNT_ID, url: hookUrl }),
+    await monzoPost(env, tokens.access_token, "/webhooks", {
+      account_id: env.ACCOUNT_ID,
+      url: hookUrl,
     });
-    if (!res.ok) {
-      return json({ error: `webhook registration failed: ${res.status} ${await res.text()}` }, 502);
-    }
     return json({ ok: true, registered: true });
   } catch (e) {
     return json({ error: String(e), needsReauth: e.needsReauth ?? false }, 502);
