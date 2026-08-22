@@ -125,6 +125,10 @@ namespace TEST
             lcd_test();
         }
 
+        // Ours first: the balance is the default screen on boot, and the
+        // demo cycle wraps back to it after the last factory screen.
+        balance_app();
+
         imu_test();
         rtc_test();
 

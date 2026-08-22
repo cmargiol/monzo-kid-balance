@@ -182,6 +182,10 @@ namespace TEST
         /* GPIO */
         void gpio_test();
 
+        /* Balance app (ours — see app_balance.cpp) */
+        void balance_app();
+        void balance_draw(bool txScreen);
+
         /* Wifi */
         void wifi_init();
         void wifi_test();
