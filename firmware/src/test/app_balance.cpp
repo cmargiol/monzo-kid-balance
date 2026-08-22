@@ -397,11 +397,19 @@ namespace TEST
                            // would saturate the SPI bus for a static screen
 
 #ifdef BALANCE_LIVE
+        // A copied-but-unfilled secrets.h must not fetch-loop against a
+        // placeholder network; say what's wrong on screen instead.
+        static const bool configured = strcmp(WIFI_SSID, "FILL_ME_IN") != 0;
         static bool booted = false;
         if (!booted)
         {
             _prefs.begin("balance");
             cacheLoad(); // instant last-known balance on cold boot
+            if (!configured)
+            {
+                _data.state = BAL_STALE;
+                _data.today = "Fill in secrets.h!";
+            }
             booted = true;
         }
         const uint32_t FETCH_EVERY_MS = 60000;
@@ -411,7 +419,7 @@ namespace TEST
         while (1)
         {
 #ifdef BALANCE_LIVE
-            if (!_inFlight && (_lastFetch == 0 || millis() - _lastFetch > FETCH_EVERY_MS))
+            if (configured && !_inFlight && (_lastFetch == 0 || millis() - _lastFetch > FETCH_EVERY_MS))
             {
                 balance_fetch();
                 dirty = true;
