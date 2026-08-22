@@ -9,10 +9,20 @@ import { formatPence, formatToday, formatTime, txRow } from "./format.js";
 const TX_WINDOW_DAYS = 89; // SCA caps transaction history at 90 days
 const TX_SHOWN = 3;
 
-export async function refreshDisplayData(env, accessToken) {
+/**
+ * quiet=true is the webhook path: best-effort freshness only. It updates the
+ * display cache on success but NEVER writes `status` and NEVER degrades on
+ * failure — status stays single-writer (the cron), so concurrent webhook
+ * bursts can't clobber needsReauth or flip a healthy display to "error"
+ * over a transient Monzo hiccup. The cron backstop repairs anything within
+ * 15 minutes. (Residual accepted race: monzoGet itself sets needsReauth on
+ * an SCA-403 even when called from the webhook — that write only ever turns
+ * the flag ON, and a later successful cron poll below turns it off again.)
+ */
+export async function refreshDisplayData(env, accessToken, { quiet = false } = {}) {
   const accountId = env.ACCOUNT_ID; // secret: keeps the id out of the repo
   if (!accountId) {
-    await updateStatus(env, { lastError: "ACCOUNT_ID secret not set" });
+    if (!quiet) await updateStatus(env, { lastError: "ACCOUNT_ID secret not set" });
     return;
   }
 
@@ -31,8 +41,13 @@ export async function refreshDisplayData(env, accessToken) {
       updated: formatTime(),
       tx: tx.map(txRow),
     });
-    await updateStatus(env, { lastPollOk: true, lastError: null });
+    if (!quiet) {
+      // A successful data read proves the SCA grant is healthy again, so a
+      // re-approval that didn't rotate tokens still clears the nag state.
+      await updateStatus(env, { lastPollOk: true, lastError: null, needsReauth: false });
+    }
   } catch (e) {
+    if (quiet) return;
     await degradeDisplay(env, e.needsReauth ? "needs_reauth" : "error");
     await updateStatus(env, { lastPollOk: false, lastError: String(e) });
   }
@@ -77,9 +92,14 @@ async function degradeDisplay(env, state) {
   await putDisplay(env, { ...current, state });
 }
 
-export async function loadDisplay(env) {
+// Three missed 15-min cron ticks with no successful rebuild = the payload
+// can no longer be trusted as fresh. Detected at serve time so a silently
+// dead cron can't keep the gadget looking healthy.
+const STALE_AFTER_MS = 45 * 60 * 1000;
+
+export async function loadDisplay(env, now = Date.now()) {
   const stored = await env.KV.get("display");
-  if (stored) return JSON.parse(stored);
+  if (stored) return markIfStale(JSON.parse(stored), now);
   // Nothing cached yet (fresh deploy): a friendly not-connected payload.
   return {
     state: "error",
@@ -90,6 +110,16 @@ export async function loadDisplay(env) {
   };
 }
 
+export function markIfStale(payload, now) {
+  // No stamp = unknown age = untrusted: putDisplay stamps every write, so a
+  // missing built_at can only mean a payload that predates the check.
+  const age = now - (payload.built_at ?? 0);
+  if (payload.state === "ok" && age > STALE_AFTER_MS) {
+    return { ...payload, state: "error" };
+  }
+  return payload;
+}
+
 async function putDisplay(env, payload) {
-  await env.KV.put("display", JSON.stringify(payload));
+  await env.KV.put("display", JSON.stringify({ ...payload, built_at: Date.now() }));
 }

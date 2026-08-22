@@ -84,22 +84,33 @@ async function saveTokens(env, t) {
 }
 
 /**
- * Authenticated GET. Returns parsed JSON, or throws MonzoError with
+ * Authenticated GET. Returns parsed JSON, or throws an Error with
  * `needsReauth: true` on the SCA-lapse 403.
  */
 export async function monzoGet(env, accessToken, path) {
+  return monzoRequest(env, accessToken, "GET", path);
+}
+
+/** Authenticated form POST with the same SCA-403 translation as monzoGet. */
+export async function monzoPost(env, accessToken, path, params) {
+  return monzoRequest(env, accessToken, "POST", path, new URLSearchParams(params));
+}
+
+async function monzoRequest(env, accessToken, method, path, body) {
   const res = await fetch(API + path, {
+    method,
     headers: { Authorization: `Bearer ${accessToken}` },
+    body,
   });
   if (res.ok) return res.json();
 
-  const body = await res.text();
+  const text = await res.text();
   const needsReauth =
-    res.status === 403 && body.includes("insufficient_permissions");
+    res.status === 403 && text.includes("insufficient_permissions");
   if (needsReauth) {
     await updateStatus(env, { needsReauth: true, lastError: "SCA lapsed" });
   }
-  const err = new Error(`GET ${path}: ${res.status} ${body}`);
+  const err = new Error(`${method} ${path}: ${res.status} ${text}`);
   err.needsReauth = needsReauth;
   throw err;
 }
