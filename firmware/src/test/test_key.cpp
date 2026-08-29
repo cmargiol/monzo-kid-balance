@@ -145,23 +145,27 @@ namespace TEST
         //     esp_restart();
         // }
 
+        // Shared power policy (dim/deep-sleep on battery) rides on this
+        // function because every screen's loop already calls it.
+        power_tick();
+
         /* Long press power off */
         if (!btnPWR.read())
         {
             _tone(3500, 50);
+            power_input();
 
-            uint32_t time_count = millis();
+            display->setCursor(0, 10);
+            display->setFont(&fonts::Font0);
+            display->setTextSize(2);
+            display->setTextColor(TFT_YELLOW, TFT_BLACK);
+            // The board's power circuit cuts power after ~3s of hold — that
+            // half is hardware; releasing sooner is the software restart.
+            display->printf(" release = RESTART\n keep holding = OFF\n");
+            displayUpdate();
 
             while (!btnPWR.read())
             {
-
-                display->setCursor(0, 10);
-                display->setFont(&fonts::Font0);
-                display->setTextSize(2);
-                display->setTextColor(TFT_YELLOW, TFT_BLACK);
-                display->printf(" PWR OFF IN %d/3\n", (millis() - time_count) / 1000 + 1);
-                displayUpdate();
-
                 delay(10);
             }
 
@@ -195,11 +199,13 @@ namespace TEST
         if (btnA.pressed())
         {
             _tone(5000, 50);
+            power_input();
             return true;
         }
         if (btnB.pressed())
         {
             _tone(5500, 50);
+            power_input();
             return true;
         }
 

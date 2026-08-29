@@ -75,6 +75,78 @@ namespace TEST
                                           // must not force a refetch storm
     static volatile bool _inFlight = false;
 
+    // ------------------------------------------------------------- Power
+    //
+    // Policy: full brightness whenever recently touched or on USB power; on
+    // battery, dim after 20s idle and deep-sleep after 2 min (the front
+    // button wakes it; the 200mAh cell can't sustain always-on).
+    //
+    // USB detection is a heuristic — the PLUS2 has no VBUS-detect pin, only
+    // the battery voltage on GPIO38 (ADC, /2 divider). A cell on USB charge
+    // sits at/above ~4.1V; discharging under load it sags below ~4.0V.
+    // The classifier smooths samples and applies hysteresis, and every
+    // misclassification is deliberately RECOVERABLE: worst case the screen
+    // dims or deep-sleeps while plugged in (a press wakes it), or stays
+    // bright a while just after unplugging. Never a hard power_off() here —
+    // on USB that call never returns (rail stays up) and the device hangs.
+
+    static const float USB_ENTER_V = 4.12f; // avg >= this -> treat as USB
+    static const float USB_EXIT_V = 4.04f;  // avg <= this -> treat as battery
+    static const uint8_t BRIGHT_FULL = 200;
+    static const uint8_t BRIGHT_DIM = 40;
+    static const uint32_t DIM_AFTER_MS = 20000;
+    static const uint32_t SLEEP_AFTER_MS = 120000;
+
+    static uint32_t _lastInput = 0;
+    static uint32_t _lastVoltSample = 0;
+    static float _voltAvg = 0;
+    static bool _usb = true;      // optimistic start: never sleep a fresh boot
+    static uint8_t _bright = 0;   // 0 = not yet asserted (LGFX default is 127)
+
+    static float battery_volts()
+    {
+        return analogReadMilliVolts(38) * 2 / 1000.0f;
+    }
+
+    bool TEST::power_on_usb() { return _usb; }
+    bool TEST::power_dimmed() { return _bright == BRIGHT_DIM; }
+    void TEST::power_input() { _lastInput = millis(); }
+
+    void TEST::power_tick()
+    {
+        if (millis() - _lastVoltSample > 2000)
+        {
+            _lastVoltSample = millis();
+            float v = battery_volts();
+            _voltAvg = _voltAvg == 0 ? v : _voltAvg * 0.75f + v * 0.25f; // ~8s window
+            if (_usb && _voltAvg <= USB_EXIT_V)
+                _usb = false;
+            else if (!_usb && _voltAvg >= USB_ENTER_V)
+                _usb = true;
+        }
+
+        uint32_t idle = millis() - _lastInput;
+        uint8_t want = (!_usb && idle > DIM_AFTER_MS) ? BRIGHT_DIM : BRIGHT_FULL;
+        if (want != _bright)
+        {
+            _bright = want;
+            lcd.setBrightness(want);
+        }
+
+        if (!_usb && idle > SLEEP_AFTER_MS)
+        {
+            // Deep sleep, front button (GPIO37, active low) wakes to a fresh
+            // boot — the NVS cache puts the balance up instantly. The power-
+            // hold pad must stay latched through sleep or the board cuts its
+            // own power and only the hardware PWR-on can revive it.
+            lcd.setBrightness(0);
+            gpio_hold_en((gpio_num_t)POWER_HOLD_PIN);
+            gpio_deep_sleep_hold_en();
+            esp_sleep_enable_ext0_wakeup(GPIO_NUM_37, 0);
+            esp_deep_sleep_start();
+        }
+    }
+
     /**
      * No font bundled with M5GFX 0.1.11 contains "£" (DejaVu* and Font0 are
      * ASCII 0x20-0x7E; the efont CJK sets skip Latin-1), so the symbol is
@@ -417,13 +489,26 @@ namespace TEST
             }
             booted = true;
         }
-        const uint32_t FETCH_EVERY_MS = 60000;
         bool wasInFlight = _inFlight;
 #endif
+        bool prevDimmed = false;
 
         while (1)
         {
+            // Policy tick happens via checkReboot() below (shared with every
+            // demo screen); here we only need the dimmed flag for input
+            // semantics — a press on a dimmed screen wakes, it doesn't act.
+            bool dimmed = power_dimmed();
 #ifdef BALANCE_LIVE
+            if (prevDimmed && !dimmed && millis() - _lastFetch > 60000)
+            {
+                _lastFetch = 0; // waking to stale data forces a refresh
+            }
+#endif
+            prevDimmed = dimmed;
+
+#ifdef BALANCE_LIVE
+            const uint32_t FETCH_EVERY_MS = power_on_usb() ? 60000 : 300000;
             // Completion MUST be handled before deciding whether a fetch is
             // due: balance_fetch() clears _done, so in the old order a fresh
             // fetch started first and swallowed every completion — _lastFetch
@@ -470,38 +555,53 @@ namespace TEST
 
             if (btnA.pressed())
             {
-                // Short press (acts on release) toggles screens; a long press
-                // fires AT the 600ms threshold, while still held — waiting
-                // for release made every action feel a second late.
-                uint32_t t0 = millis();
-                bool longFired = false;
-                while (!btnA.read()) // still held
+                power_input();
+                if (dimmed)
                 {
-                    if (!longFired && millis() - t0 > 600)
+                    // Wake-only press: power_tick() brightens on the next
+                    // pass; no action, and no blocking on the release —
+                    // the press edge won't re-fire until a new press.
+                }
+                else
+                {
+                    // Short press (acts on release) toggles screens; a long
+                    // press fires AT the 600ms threshold, while still held —
+                    // waiting for release made every action feel a second late.
+                    uint32_t t0 = millis();
+                    bool longFired = false;
+                    while (!btnA.read()) // still held
                     {
-                        longFired = true;
-                        _tone(4000, 80); // feedback under the finger
+                        if (!longFired && millis() - t0 > 600)
+                        {
+                            longFired = true;
+                            _tone(4000, 80); // feedback under the finger
 #ifdef BALANCE_LIVE
-                        _lastFetch = 0; // force refresh on next loop pass
+                            _lastFetch = 0; // force refresh on next loop pass
 #else
-                        _data.state = (BalanceState)((_data.state + 1) % 3);
-                        balance_draw(txScreen); // show the new state immediately
+                            _data.state = (BalanceState)((_data.state + 1) % 3);
+                            balance_draw(txScreen); // show the new state immediately
 #endif
+                        }
+                        delay(10);
                     }
-                    delay(10);
+                    if (!longFired)
+                    {
+                        txScreen = !txScreen;
+                        _tone(5000, 50);
+                    }
                 }
-                if (!longFired)
-                {
-                    txScreen = !txScreen;
-                    _tone(5000, 50);
-                }
+                power_input();
                 dirty = true;
             }
 
             if (btnB.pressed())
             {
-                _tone(5500, 50);
-                return; // next app in the demo cycle
+                power_input();
+                if (!dimmed)
+                {
+                    _tone(5500, 50);
+                    return; // next app in the demo cycle
+                }
             }
 
             checkReboot();
