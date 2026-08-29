@@ -189,6 +189,15 @@ namespace TEST
         void balance_draw(bool txScreen);
         bool balance_fetch(); // live mode only: kicks off the async fetch task
 
+        /* Power policy (app_balance.cpp): full brightness while in use; on
+           battery, dim after 20s idle and deep-sleep (front button wakes)
+           after 2 min. Wired into checkReboot()/checkNext() so every screen
+           in the demo cycle is covered. */
+        void power_tick();   // sample voltage, apply dim/sleep; call every loop
+        void power_input();  // record user input; call on any button action
+        bool power_on_usb();
+        bool power_dimmed();
+
         /* Wifi */
         void wifi_init();
         void wifi_test();
