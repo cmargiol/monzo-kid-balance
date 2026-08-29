@@ -24,6 +24,11 @@ crons = ["*/15 * * * *"]
 #                         this public repo.
 #   WEBHOOK_KEY         — shared secret in the webhook URL (Monzo webhooks are
 #                         unsigned); openssl rand -hex 24
-#   NTFY_TOPIC          — optional: ntfy.sh topic for "needs re-approval" nags.
-#                         Pick something unguessable (openssl rand -hex 8) and
-#                         subscribe to it in the ntfy phone app.
+#   BREVO_API_KEY       — optional: with NAG_FROM + NAG_EMAIL, "needs
+#                         re-approval" nags arrive by email via brevo.com.
+#   NAG_FROM            — sender address, must be verified in the Brevo
+#                         account. Secret: keeps addresses out of this repo.
+#   NAG_EMAIL           — recipient inbox for the nags. Also a secret.
+#   NTFY_TOPIC          — optional instead/as well: push nags to an ntfy.sh
+#                         topic (subscribe in the free ntfy phone app). Pick
+#                         an unguessable name (openssl rand -hex 8).

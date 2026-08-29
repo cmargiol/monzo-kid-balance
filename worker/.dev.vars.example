@@ -7,4 +7,6 @@ MONZO_CLIENT_ID=oauth2client_dev
 MONZO_CLIENT_SECRET=dev-secret
 ACCOUNT_ID=acc_dev
 WEBHOOK_KEY=dev-webhook-key
-# NTFY_TOPIC unset in dev: nags are skipped when not configured
+# Nag transports unset in dev: nags are skipped when none is configured.
+# Production uses BREVO_API_KEY + NAG_FROM + NAG_EMAIL (email) and/or
+# NTFY_TOPIC (push) — see wrangler.toml.
