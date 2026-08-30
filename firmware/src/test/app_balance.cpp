@@ -54,6 +54,7 @@ namespace TEST
         int txCount;
         String txName[3];
         String txAmt[3];
+        String txNote[3]; // the sender's message (Monzo notes), often empty
     };
 
 #ifdef BALANCE_LIVE
@@ -67,6 +68,7 @@ namespace TEST
         3,
         {"Toy Shop", "Pocket money", "Bus"},
         {"-£4.99", "+£2.00", "-£1.75"},
+        {"", "Μπραβο! For being brilliant", ""},
     };
 #endif
 
@@ -165,6 +167,21 @@ namespace TEST
         return w + h / 10;
     }
 
+    // Secondary-text gray, used for the clock and captions.
+    #define COL_DIM (Disbuff->color565(150, 150, 150))
+    // Message lines: brighter for readability, still distinct from the white
+    // transaction names.
+    #define COL_NOTE (Disbuff->color565(205, 205, 205))
+
+    /** Truncate to `max` chars, last one becoming "." — for strings that
+     *  must never collide with or overflow their line. */
+    static String clip(const String &s, int max)
+    {
+        if ((int)s.length() <= max)
+            return s;
+        return s.substring(0, max - 1) + ".";
+    }
+
     /**
      * The fonts are ASCII-only, so every payload string passes through this:
      * "£" (C2 A3) is dropped (drawn geometrically where wanted), "—" (E2 80
@@ -186,6 +203,14 @@ namespace TEST
             if (c == 0xC2 && i + 1 < in.length() && (uint8_t)in[i + 1] == 0xA3)
             {
                 i++;
+                continue;
+            }
+            if (c >= 0xCD && c <= 0xCF && i + 1 < in.length())
+            {
+                // Greek (and Coptic) pass through: the message line renders
+                // in efontCN_16, which carries the Greek alphabet.
+                out += (char)c;
+                out += in[++i];
                 continue;
             }
             if (c == 0xE2 && i + 2 < in.length() && (uint8_t)in[i + 1] == 0x80)
@@ -228,7 +253,7 @@ namespace TEST
         // "%s" deliberately: DISPLAY_TITLE is user-personalised and must never
         // be interpreted as a format string.
         Disbuff->printf("%s", txScreen ? "LAST 3" : DISPLAY_TITLE);
-        Disbuff->setTextColor(Disbuff->color565(150, 150, 150));
+        Disbuff->setTextColor(COL_DIM);
         Disbuff->drawRightString(sanitise(_data.updated).c_str(), 234, 5, 1);
         if (_inFlight)
             Disbuff->fillCircle(160, 12, 4, TFT_SKYBLUE); // clear of the HH:MM text
@@ -239,15 +264,16 @@ namespace TEST
             int shown = _data.txCount < 3 ? _data.txCount : 3;
             for (int i = 0; i < shown; i++)
             {
-                int y = 36 + i * 26;
+                // Two lines per row: sender + amount, then the sender's
+                // message (if any) smaller and gray underneath.
+                int y = 30 + i * 34;
                 String amt = sanitise(_data.txAmt[i]);
                 String name = sanitise(_data.txName[i]);
                 // Clip the name to the space left of the right-aligned amount
                 // (Font0 size 2 advances 12px/char) so they can never collide.
                 int maxName = (234 - (int)amt.length() * 12 - 6 - 12) / 12;
                 if (maxName < 1) maxName = 1;
-                if ((int)name.length() > maxName)
-                    name = name.substring(0, maxName - 1) + ".";
+                name = clip(name, maxName);
                 Disbuff->setFont(&fonts::Font0);
                 Disbuff->setTextSize(2);
                 Disbuff->setTextColor(TFT_WHITE);
@@ -255,12 +281,27 @@ namespace TEST
                 Disbuff->printf("%s", name.c_str());
                 Disbuff->setTextColor(amt[0] == '+' ? TFT_GREEN : TFT_WHITE);
                 Disbuff->drawRightString(amt.c_str(), 234, y, 1);
+
+                String note = sanitise(_data.txNote[i]);
+                if (note.length() > 0)
+                {
+                    // The Worker caps notes to fit this line (width-aware:
+                    // Greek glyphs are double-width); this clip is defense
+                    // against a non-Worker payload only.
+                    note = clip(note, 60);
+                    // efontCN_16: the only bundled font with Greek glyphs.
+                    Disbuff->setFont(&fonts::efontCN_16);
+                    Disbuff->setTextSize(1);
+                    Disbuff->setTextColor(COL_NOTE);
+                    Disbuff->setCursor(6, y + 17);
+                    Disbuff->printf("%s", note.c_str());
+                }
             }
             if (shown == 0)
             {
                 Disbuff->setFont(&fonts::Font0);
                 Disbuff->setTextSize(2);
-                Disbuff->setTextColor(Disbuff->color565(150, 150, 150));
+                Disbuff->setTextColor(COL_DIM);
                 Disbuff->drawCenterString("Nothing yet!", 120, 64);
             }
         }
@@ -302,7 +343,7 @@ namespace TEST
 
             Disbuff->setFont(&fonts::Font0);
             Disbuff->setTextSize(2);
-            Disbuff->setTextColor(Disbuff->color565(150, 150, 150));
+            Disbuff->setTextColor(COL_DIM);
             // y=96: leaves the stale strip's band (115..135) untouched.
             Disbuff->drawCenterString(sanitise(_data.today).c_str(), 120, 96);
         }
@@ -339,6 +380,7 @@ namespace TEST
         {
             _prefs.putString((String("txn") + i).c_str(), _data.txName[i]);
             _prefs.putString((String("txa") + i).c_str(), _data.txAmt[i]);
+            _prefs.putString((String("txm") + i).c_str(), _data.txNote[i]);
         }
     }
 
@@ -354,6 +396,7 @@ namespace TEST
         {
             _data.txName[i] = _prefs.getString((String("txn") + i).c_str(), "");
             _data.txAmt[i] = _prefs.getString((String("txa") + i).c_str(), "");
+            _data.txNote[i] = _prefs.getString((String("txm") + i).c_str(), "");
         }
         // Only ok-state payloads are ever saved, so cached data renders clean
         // while the first fetch is in flight; the strip appears on failure.
@@ -437,6 +480,7 @@ namespace TEST
                 break;
             out.txName[out.txCount] = sanitise((const char *)(t[0] | "?"));
             out.txAmt[out.txCount] = sanitise((const char *)(t[1] | ""));
+            out.txNote[out.txCount] = sanitise((const char *)(t[2] | ""));
             out.txCount++;
         }
         out.state = strcmp(st, "needs_reauth") == 0 ? BAL_NEEDS_REAUTH

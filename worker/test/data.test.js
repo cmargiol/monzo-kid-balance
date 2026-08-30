@@ -64,7 +64,7 @@ test("successful refresh writes display and clears needsReauth", async () => {
   const display = JSON.parse(env._store.get("display"));
   assert.equal(display.state, "ok");
   assert.equal(display.balance, "£12.34");
-  assert.deepEqual(display.tx, [["Dad", "+£2.00"]]);
+  assert.deepEqual(display.tx, [["Dad", "+£2.00", ""]]);
   assert.ok(display.built_at > 0);
   const status = JSON.parse(env._store.get("status"));
   assert.equal(status.needsReauth, false); // re-approval without rotation heals
