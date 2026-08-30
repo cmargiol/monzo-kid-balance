@@ -70,11 +70,18 @@ npx wrangler secret put MONZO_CLIENT_SECRET
    card is tapped): `openssl rand -hex 24` → `npx wrangler secret put
    WEBHOOK_KEY`, redeploy, then visit
    `/admin/register-webhook?admin=<ADMIN_TOKEN>` once.
-6. Re-auth nags (recommended): pick an unguessable topic name
-   (`openssl rand -hex 8`) → `npx wrangler secret put NTFY_TOPIC`, and
-   subscribe to that topic in the free [ntfy](https://ntfy.sh) phone app.
-   When Monzo's ~90-day SCA lapse hits, you get one push per day telling you
-   the re-approval steps instead of a silently stale gadget.
+6. Re-auth nags (recommended — when Monzo's ~90-day SCA lapse hits you get
+   one nag per day with the re-approval steps, instead of a silently stale
+   gadget). Two transports, either or both:
+   - **Email** via [Brevo](https://brevo.com): set all three of
+     `BREVO_API_KEY` (an API key from your Brevo account), `NAG_FROM` (a
+     sender address verified in that account), and `NAG_EMAIL` (the inbox
+     to nag) — each via `npx wrangler secret put`. Setting only some of the
+     three surfaces as an error in `/status` rather than silently doing
+     nothing.
+   - **Push** via [ntfy](https://ntfy.sh): pick an unguessable topic name
+     (`openssl rand -hex 8`) → `npx wrangler secret put NTFY_TOPIC`, and
+     subscribe to that topic in the free ntfy phone app.
 
 ## Tests
 

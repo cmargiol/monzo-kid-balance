@@ -32,8 +32,8 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
   (template: `firmware/src/secrets.h.example`).
 - **Survives Monzo's quirks.** Single-use refresh tokens are rotated by a single
   writer (the cron) to avoid races; the undocumented ~90-day SCA lapse turns into
-  a friendly "ask a grown-up to re-approve" screen plus an ntfy.sh nag, instead
-  of a mysteriously dead gadget.
+  a friendly "ask a grown-up to re-approve" screen plus a daily email (or
+  ntfy.sh push) nag, instead of a mysteriously dead gadget.
 
 ## Repository layout
 
