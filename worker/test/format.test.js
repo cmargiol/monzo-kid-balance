@@ -26,18 +26,58 @@ test("formatTime is Europe/London HH:MM", () => {
 test("txRow prefers merchant, falls back to counterparty then description", () => {
   assert.deepEqual(
     txRow({ amount: -499, merchant: { name: "Toy Shop" } }),
-    ["Toy Shop", "-£4.99"]
+    ["Toy Shop", "-£4.99", ""]
   );
   // Real shape of a pocket-money transfer on an Under-16s account:
-  // merchant is null, counterparty carries the human name.
+  // merchant is null, counterparty carries the human name, notes carries
+  // the sender's (editable) message.
   assert.deepEqual(
-    txRow({ amount: 200, merchant: null, counterparty: { name: "Dad" }, description: "Dad" }),
-    ["Dad", "+£2.00"]
+    txRow({
+      amount: 200,
+      merchant: null,
+      counterparty: { name: "Dad" },
+      description: "Dad",
+      notes: "💰 Pocket money",
+    }),
+    ["Dad", "+£2.00", "💰 Pocket money"]
   );
   assert.deepEqual(
     txRow({ amount: -175, description: "Bus travel\nref 42" }),
-    ["Bus travel", "-£1.75"]
+    ["Bus travel", "-£1.75", ""]
   );
+});
+
+test("txRow notes are first-line only and width-unit truncated", () => {
+  const [, , note] = txRow({
+    amount: 100,
+    description: "Dad",
+    notes: "line one\nline two",
+  });
+  assert.equal(note, "line one");
+
+  // Greek glyphs are double-width in the device's efont: 6 chars = 12 units,
+  // fits whole; 20 chars = 40 units, cut at 25 units = 12 chars + ellipsis.
+  const [, , greek] = txRow({ amount: 100, description: "Dad", notes: "Μπράβο" });
+  assert.equal(greek, "Μπράβο");
+  const [, , longGreek] = txRow({
+    amount: 100,
+    description: "Dad",
+    notes: "α".repeat(20),
+  });
+  assert.equal(longGreek, "α".repeat(12) + "…");
+
+  // Emoji also count 2 units and never split surrogate pairs.
+  const [, , long] = txRow({
+    amount: 100,
+    description: "Dad",
+    notes: "🎉".repeat(40),
+  });
+  assert.equal([...long].length, 13); // 12 emoji (24 units) + ellipsis
+  assert.ok(long.endsWith("…"));
+
+  // 28 ASCII chars = 28 units: exactly fits, untouched.
+  const [, , ascii] = txRow({ amount: 100, description: "Dad", notes: "x".repeat(28) });
+  assert.equal(ascii, "x".repeat(28));
 });
 
 test("txRow truncates long names to 16 chars with ellipsis", () => {

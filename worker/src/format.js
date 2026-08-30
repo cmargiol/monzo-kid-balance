@@ -4,6 +4,13 @@
  */
 
 const NAME_MAX = 16; // fits the tx row at the font size the firmware uses
+// The device draws the message line in efontCN_16 (the only bundled font
+// with Greek): ASCII glyphs are 8px wide, Greek 16px, across 228px = 28
+// "units" per line. Truncation is unit-aware; the ellipsis renders as "..."
+// (3 units) after the device's sanitiser, so we cut to 25 units + "…".
+// Change any link in that chain and re-derive the rest.
+const NOTE_UNITS_MAX = 28;
+const NOTE_UNITS_CUT = 25;
 
 /** 1234 → "£12.34", -499 → "-£4.99" */
 export function formatPence(pence) {
@@ -29,20 +36,52 @@ export function formatTime(date = new Date()) {
   }).format(date);
 }
 
-/** Transaction → ["Toy Shop", "-£4.99"] with a signed, kid-readable amount. */
+/**
+ * Transaction → ["Dad", "+£2.00", "For the school trip"].
+ * The third element is the sender's message (Monzo `notes`, editable after
+ * sending between Monzo accounts — we forward whatever is current at fetch
+ * time), or "" when there is none.
+ */
 export function txRow(tx) {
   const name =
     tx.merchant?.name || tx.counterparty?.name || tidyDescription(tx.description);
   const amount = `${tx.amount < 0 ? "-" : "+"}${formatPence(Math.abs(tx.amount))}`;
-  return [truncate(name, NAME_MAX), amount];
+  const note = firstLine(tx.notes ?? "");
+  return [truncate(name, NAME_MAX), amount, truncateUnits(note)];
 }
 
 /** Bank-transfer descriptions are noisy ("FASTER PAYMENT REF 123…"); soften. */
 function tidyDescription(desc) {
   if (!desc) return "Something";
-  return desc.split("\n")[0].trim();
+  return firstLine(desc);
+}
+
+function firstLine(s) {
+  return s.split(/\r?\n/)[0].trim();
+}
+
+/** Display-width-aware truncation: ASCII counts 1 unit, everything else 2. */
+function truncateUnits(s) {
+  let units = 0;
+  const chars = [...s];
+  for (let i = 0; i < chars.length; i++) {
+    units += chars[i].codePointAt(0) < 0x80 ? 1 : 2;
+    if (units > NOTE_UNITS_MAX) {
+      let cut = [], u = 0;
+      for (const c of chars) {
+        u += c.codePointAt(0) < 0x80 ? 1 : 2;
+        if (u > NOTE_UNITS_CUT) break;
+        cut.push(c);
+      }
+      return cut.join("") + "…";
+    }
+  }
+  return s;
 }
 
 function truncate(s, max) {
-  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+  // Codepoint-aware: notes often carry emoji, and slicing a surrogate pair
+  // in half would send malformed text to the device.
+  const chars = [...s];
+  return chars.length <= max ? s : chars.slice(0, max - 1).join("") + "…";
 }
