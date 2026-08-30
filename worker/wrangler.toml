@@ -9,8 +9,8 @@ kv_namespaces = [
   { binding = "KV", id = "ebd139a903784c4b9300fd7b815e6386" },
 ]
 
-# Refresh cadence; the webhook (next PR) makes updates near-instant, this is
-# the backstop. Also the only writer allowed to refresh OAuth tokens.
+# Refresh cadence. Monzo's transaction webhook makes updates near-instant;
+# this cron is the backstop. Also the only writer allowed to refresh OAuth tokens.
 [triggers]
 crons = ["*/15 * * * *"]
 
