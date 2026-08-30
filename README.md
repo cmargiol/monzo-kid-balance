@@ -42,6 +42,7 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
 | `worker/`   | Cloudflare Worker (vanilla JS, zero deps): Monzo OAuth, token rotation, webhook + cron cache refresh, `/display` endpoint |
 | `firmware/` | PlatformIO firmware for the M5StickC PLUS2 — a vendored copy of M5Stack's factory demo with a Balance app added as the default screen |
 | `docs/`     | Notes, including the Monzo API findings that shaped the design |
+| `scripts/`  | `update.sh` — the recurring chores (deploy, flash, change WiFi) |
 
 ## Day-2 operations
 

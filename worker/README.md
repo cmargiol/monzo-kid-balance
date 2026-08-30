@@ -34,9 +34,9 @@ curl "http://localhost:8787/status?admin=dev-admin-change-me"
 cd worker
 npx wrangler login                     # one-time, opens browser
 npx wrangler kv namespace create KV    # paste printed id into wrangler.toml
-openssl rand -base64 32                # device token…
+openssl rand -hex 32                   # device token (hex: URL-safe, no +// )
 npx wrangler secret put DEVICE_TOKEN   # …paste it (save in password manager too)
-openssl rand -base64 32                # admin token…
+openssl rand -hex 32                   # admin token…
 npx wrangler secret put ADMIN_TOKEN    # …paste it (password manager again)
 npx wrangler deploy                    # prints your workers.dev URL
 ```
@@ -121,5 +121,6 @@ cd worker && npm test    # pure-function tests for the formatting layer
 - **~90-day SCA lapse** — undocumented: all calls (even balance) start
   returning 403 `forbidden.insufficient_permissions` until the account holder
   re-approves in the Monzo app (Settings → Privacy & Security → Manage apps).
-  The Worker flags this as `needsReauth` in `/status` and (in a later PR) tells
-  the gadget to show its "ask a grown-up" screen.
+  The Worker flags this as `needsReauth` in `/status`, serves the display
+  payload as `needs_reauth` so the gadget shows its "Ask Dad to fix me!"
+  screen, and emails the parent once a day until it's fixed.

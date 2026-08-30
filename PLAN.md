@@ -24,6 +24,9 @@ security trade-offs: `worker/README.md`.
 | 9 | Battery power policy + PWR messaging (planned as "polish") | #12 |
 | — | Post-plan: re-auth nags by email via Brevo | #13 |
 | — | Post-plan: PLAN.md close-out + accepted-trade-offs docs | #14 |
+| — | Post-plan: transaction messages on the gadget, with Greek | #15 |
+| — | Post-plan: `scripts/update.sh` day-2 operations | #16 |
+| — | Post-plan: firmware README + docs sweep | #17 |
 
 (#8 was the PLAN.md introduction itself. The #2→#3 duplication and the #6/#9
 split were stacked-PR merge mishaps, both documented in those PRs.)
@@ -35,8 +38,8 @@ split were stacked-PR merge mishaps, both documented in those PRs.)
 - ✅ Monzo OAuth client (Confidential) connected; `ACCOUNT_ID` set
 - ✅ Webhook registered (card tap → screen update in under a minute, verified)
 - ✅ Device flashed in live mode; phases 1–3 field-tested on hardware
-- Nag transports: ntfy topic configured; Brevo email pending its two secrets
-  (`BREVO_API_KEY`, `NAG_FROM`) — see `worker/README.md` step 6
+- ✅ Re-auth nag by email (Brevo), live-drilled end to end: forced a real
+  Monzo 403 → email + "Ask Dad" screen → restored → self-healed
 
 ## What field testing changed (kept for the next hardware project)
 
