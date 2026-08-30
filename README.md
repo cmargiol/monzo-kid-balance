@@ -45,6 +45,11 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
 
 ## Status
 
-Early days — being built in small PRs. See `docs/spike-notes.md` for the first
-open question: whether Monzo Under-16s accounts are visible via the developer
-API at all.
+**Live and complete.** The gadget sits on a desk showing a real balance,
+updating within a minute of the card being tapped (webhook-driven), with
+battery dim/sleep, verified TLS, and friendly screens for every failure mode.
+`PLAN.md` records how the build was sequenced and what on-device testing
+caught; `docs/spike-notes.md` answers the question this project hinged on
+(yes — Monzo Under-16s accounts are fully readable via the parent's API
+token); `worker/README.md` documents setup and the accepted security
+trade-offs.

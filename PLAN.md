@@ -1,42 +1,57 @@
 # Plan — PR sequence and status
 
-Source of truth for the build order across sessions. Update as PRs merge.
+**Status: COMPLETE.** The gadget is live: real balance and last-3 transactions
+on the child's desk, updating within a minute of a card tap. This file is the
+historical record of how the build was sequenced.
 
 **Project:** an M5StickC PLUS2 desk gadget showing a kid's Monzo balance and
 last 3 transactions, via a Cloudflare Worker proxy. Architecture and design
-decisions: see `README.md`; Monzo API findings: `docs/spike-notes.md`.
+decisions: `README.md`; Monzo API findings: `docs/spike-notes.md`; accepted
+security trade-offs: `worker/README.md`.
 
-## Sequence
+## Sequence (all merged)
 
-| # | PR | Status | Depends on |
-|---|----|--------|------------|
-| 1 | Scaffold: README, spike notes, gitignore, license | ✅ merged (#1) | — |
-| 2 | Worker skeleton: mock `/display` + bearer auth | ✅ merged (#2→#3) | 1 |
-| 3 | Worker OAuth: login flow, KV token rotation, admin routes | ✅ merged (#4) | 2 |
-| 4 | Worker live data: balance/tx fetch, formatting, cron | ✅ merged (#5) | 3 |
-| 5 | Worker resilience: webhook, re-auth nags | ✅ merged (#6); staleness + review fixes re-landing in #9 | 4 |
-| 6 | Firmware import: vendored factory demo + upstream fixes | ✅ merged (#7) | — (independent of 2–5) |
-| 7 | Balance app rendering mock data in the screen cycle | ⏳ next | 6 |
-| 8 | Device↔Worker: HTTPS + CA bundle + NTP, NVS cache, error screens | ⏳ | 7, and Worker deployed |
-| 9 | Transactions screen + dual power modes | ⏳ | 8 |
+| # | PR | Merged as |
+|---|----|-----------|
+| 1 | Scaffold: README, spike notes, gitignore, license | #1 |
+| 2 | Worker skeleton: mock `/display` + bearer auth | #2→#3 |
+| 3 | Worker OAuth: login flow, KV token rotation, admin routes | #4 |
+| 4 | Worker live data: balance/tx fetch, formatting, cron | #5 |
+| 5 | Worker resilience: webhook, re-auth nags, staleness detection | #6 + #9 |
+| 6 | Firmware import: vendored factory demo + upstream fixes | #7 |
+| 7 | Balance app rendering mock data in the screen cycle | #10 |
+| 8 | Device↔Worker: HTTPS + CA bundle + NTP, NVS cache, error screens | #11 |
+| 9 | Battery power policy + PWR messaging (planned as "polish") | #12 |
+| — | Post-plan: re-auth nags by email via Brevo | #13 |
+| — | Post-plan: PLAN.md close-out + accepted-trade-offs docs | #14 |
 
-Worker PRs (2–5) and firmware PRs (6–9) are two independent tracks; they only
-meet at PR 8, which needs the Worker deployed and reachable.
+(#8 was the PLAN.md introduction itself. The #2→#3 duplication and the #6/#9
+split were stacked-PR merge mishaps, both documented in those PRs.)
 
-## Manual setup (outside PRs, owner: repo owner)
+## Manual setup (all done)
 
-- ✅ Phase 0 spike: Under-16s account is API-visible, balance + transactions
-  readable via parent token (`docs/spike-notes.md`)
-- ⏳ Cloudflare: `wrangler login`, KV namespace, secrets, first deploy
-  (steps: `worker/README.md`)
-- ⏳ Monzo OAuth client (Confidential) + connect + `ACCOUNT_ID` secret
-- ⏳ Optional: webhook registration, ntfy topic for re-auth nags
-- ⏳ Device: flash firmware over USB once PR 8 lands (`secrets.h` from template)
+- ✅ Phase 0 spike: Under-16s account is API-visible via the parent's token
+- ✅ Cloudflare: KV namespace, secrets, deploy (monzo-kid-balance.workers.dev)
+- ✅ Monzo OAuth client (Confidential) connected; `ACCOUNT_ID` set
+- ✅ Webhook registered (card tap → screen update in under a minute, verified)
+- ✅ Device flashed in live mode; phases 1–3 field-tested on hardware
+- Nag transports: ntfy topic configured; Brevo email pending its two secrets
+  (`BREVO_API_KEY`, `NAG_FROM`) — see `worker/README.md` step 6
 
-## Working agreements
+## What field testing changed (kept for the next hardware project)
 
-- One branch per PR, based on `main`; stacked work is prepared locally but its
-  PR opens only after the base merges. Delete branches on merge.
+Every firmware PR was tested on the physical device before merge, and every
+round found something the desk build couldn't: the missing £ glyph in every
+bundled font, `esp_restart()` dropping the power-hold GPIO, the TLS handshake
+starving on heap beside a 16-bit framebuffer, fetch completions being
+swallowed by the next fetch's flag reset, a charging battery misread as
+"on battery" bricking via `power_off()`, and buttons that felt a second late
+because actions waited for release. Emulators would have shown none of these.
+
+## Working agreements (unchanged)
+
+- One branch per PR, based on `main`; stacked work opens only after its base
+  merges. Delete branches on merge.
 - Commit messages and repo-visible names are proposed for review before
   committing; no secrets or account identifiers anywhere in the repo.
 - Every PR gets a `/code-review` pass with findings addressed before review,

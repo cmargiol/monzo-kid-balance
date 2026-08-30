@@ -83,6 +83,29 @@ npx wrangler secret put MONZO_CLIENT_SECRET
      (`openssl rand -hex 8`) → `npx wrangler secret put NTFY_TOPIC`, and
      subscribe to that topic in the free ntfy phone app.
 
+## Accepted trade-offs
+
+Deliberate simplifications, each recorded with its upgrade path so future
+changes revisit them knowingly:
+
+- **Admin token in the URL** (`?admin=…`): admin routes are browser-driven
+  (the phone OAuth dance), and browsers can't send custom headers. HTTPS
+  protects the query string in transit; the real leak vectors are browser
+  history, bookmarks, screenshots, and request logs. Everything behind the
+  token is read-only, and rotation is one `wrangler secret put ADMIN_TOKEN`.
+  *Upgrade:* put Cloudflare Access in front of `/admin/*` and `/status`.
+- **Static device bearer token**: a leak reveals a pocket-money balance and
+  three truncated merchant names — no identifiers, no actions. *Upgrade:*
+  rotate via secret + reflash; nothing smarter is warranted by the data.
+- **Webhook key in the URL**: Monzo webhooks are unsigned, so the URL carries
+  a shared secret. Same hygiene as the admin token; the handler treats
+  payloads as untrusted doorbells and re-fetches from the API regardless.
+  *Upgrade:* none available until Monzo signs webhooks.
+- **Pinned root-CA bundle on the device** (`firmware/src/ca_certs.h`): if
+  Cloudflare ever leaves both the Google Trust Services and ISRG root
+  families, the device fails *safe* (stale-balance screen) until reflashed
+  with an updated bundle.
+
 ## Tests
 
 ```bash
