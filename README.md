@@ -43,6 +43,17 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
 | `firmware/` | PlatformIO firmware for the M5StickC PLUS2 — a vendored copy of M5Stack's factory demo with a Balance app added as the default screen |
 | `docs/`     | Notes, including the Monzo API findings that shaped the design |
 
+## Day-2 operations
+
+`scripts/update.sh` automates the recurring chores: `worker` (test + deploy),
+`device` (build + flash over USB), `wifi` (edit `secrets.h` — e.g. a new home
+network — then flash), `all`. One-time tooling setup: Node (for `npx wrangler`)
+and PlatformIO in a project venv:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install platformio
+```
+
 ## Status
 
 **Live and complete.** The gadget sits on a desk showing a real balance,
