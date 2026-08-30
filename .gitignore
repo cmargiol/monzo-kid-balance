@@ -6,6 +6,7 @@ worker/.dev.vars.production-backup
 # Cloudflare / Node
 worker/node_modules/
 worker/.wrangler/
+.wrangler/
 
 # PlatformIO
 firmware/.pio/
