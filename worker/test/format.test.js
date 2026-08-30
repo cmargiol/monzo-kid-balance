@@ -57,8 +57,11 @@ test("txRow notes are first-line only and width-unit truncated", () => {
 
   // Greek glyphs are double-width in the device's efont: 6 chars = 12 units,
   // fits whole; 20 chars = 40 units, cut at 25 units = 12 chars + ellipsis.
-  const [, , greek] = txRow({ amount: 100, description: "Dad", notes: "Μπράβο" });
-  assert.equal(greek, "Μπράβο");
+  // Accents are stripped (the device font lacks tonos glyphs and ς).
+  const [, , greek] = txRow({ amount: 100, description: "Dad", notes: "Μπράβο! ς" });
+  assert.equal(greek, "Μπραβο! σ");
+  const [, , latin] = txRow({ amount: 100, description: "Dad", notes: "café treat" });
+  assert.equal(latin, "cafe treat");
   const [, , longGreek] = txRow({
     amount: 100,
     description: "Dad",

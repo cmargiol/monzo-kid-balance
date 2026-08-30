@@ -68,7 +68,7 @@ namespace TEST
         3,
         {"Toy Shop", "Pocket money", "Bus"},
         {"-£4.99", "+£2.00", "-£1.75"},
-        {"", "Μπράβο! For being brilliant", ""},
+        {"", "Μπραβο! For being brilliant", ""},
     };
 #endif
 
@@ -167,8 +167,11 @@ namespace TEST
         return w + h / 10;
     }
 
-    // Secondary-text gray, used for the clock, captions, and message lines.
+    // Secondary-text gray, used for the clock and captions.
     #define COL_DIM (Disbuff->color565(150, 150, 150))
+    // Message lines: brighter for readability, still distinct from the white
+    // transaction names.
+    #define COL_NOTE (Disbuff->color565(205, 205, 205))
 
     /** Truncate to `max` chars, last one becoming "." — for strings that
      *  must never collide with or overflow their line. */
@@ -289,7 +292,7 @@ namespace TEST
                     // efontCN_16: the only bundled font with Greek glyphs.
                     Disbuff->setFont(&fonts::efontCN_16);
                     Disbuff->setTextSize(1);
-                    Disbuff->setTextColor(COL_DIM);
+                    Disbuff->setTextColor(COL_NOTE);
                     Disbuff->setCursor(6, y + 17);
                     Disbuff->printf("%s", note.c_str());
                 }

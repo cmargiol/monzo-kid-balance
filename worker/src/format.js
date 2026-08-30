@@ -46,7 +46,7 @@ export function txRow(tx) {
   const name =
     tx.merchant?.name || tx.counterparty?.name || tidyDescription(tx.description);
   const amount = `${tx.amount < 0 ? "-" : "+"}${formatPence(Math.abs(tx.amount))}`;
-  const note = firstLine(tx.notes ?? "");
+  const note = deaccent(firstLine(tx.notes ?? ""));
   return [truncate(name, NAME_MAX), amount, truncateUnits(note)];
 }
 
@@ -58,6 +58,16 @@ function tidyDescription(desc) {
 
 function firstLine(s) {
   return s.split(/\r?\n/)[0].trim();
+}
+
+/**
+ * The device font has plain Greek but no accented forms (and no final
+ * sigma), so ά would render as a box. Decompose and drop combining marks —
+ * the accepted convention for accent-less Greek (as in all-caps text) —
+ * which also mends accented Latin (café → cafe rather than caf).
+ */
+function deaccent(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ς/g, "σ");
 }
 
 /** Display-width-aware truncation: ASCII counts 1 unit, everything else 2. */
