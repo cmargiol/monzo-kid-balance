@@ -40,8 +40,12 @@ namespace TEST
     // means the same lean whether the device rests flat or stands up. 15° is
     // deliberate but keeps the screen readable.
     static const float TILT_DEAD_DEG = 15.0f;
-    static const float LR_SIGN = 1.0f;  // flip if left/right come out mirrored
-    static const float UD_SIGN = 1.0f;  // flip if up/down come out mirrored
+    // The IMU is mounted rotated relative to the screen: its y axis runs
+    // along the screen's long side (left-right) and its x axis along the
+    // short side (up-down). Signs were read off the start-screen readout:
+    // left edge down must be negative LR, top edge away must be positive UD.
+    static const float LR_SIGN = -1.0f;
+    static const float UD_SIGN = 1.0f;
     static const uint32_t PAUSE_KEEPAWAKE_MS = 10 * 60 * 1000;
 
     enum Dir { UP, RIGHT, DOWN, LEFT, NONE };
@@ -61,15 +65,16 @@ namespace TEST
     static Snake S;
     static float _neutralRoll = 0, _neutralPitch = 0;
 
-    /** Lean angles in degrees. Roll uses the bank formula (defined at any
-     *  hold); pitch uses atan2 against z, which stays stable unless the
-     *  device is lying on its side — not a way anyone plays. */
+    /** Lean angles in degrees, screen-relative: `roll` is left/right (bank
+     *  formula on chip y, defined at any hold), `pitch` is up/down (atan2
+     *  of chip x against z — stable unless the device stands on a short
+     *  edge, which is not a way anyone plays). */
     static void tiltAngles(MPU6886 &imu, float &roll, float &pitch)
     {
         float ax, ay, az;
         imu.getAccelData(&ax, &ay, &az);
-        roll = atan2f(ax, sqrtf(ay * ay + az * az)) * 57.2958f;
-        pitch = atan2f(ay, az) * 57.2958f;
+        roll = atan2f(ay, sqrtf(ax * ax + az * az)) * 57.2958f;
+        pitch = atan2f(ax, az) * 57.2958f;
     }
 
     static float wrapDeg(float d)
