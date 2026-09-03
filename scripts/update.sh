@@ -45,7 +45,7 @@ device() {
     echo "note: WORKER_URL is not defined — this builds the MOCK version (no fetching)." >&2
   fi
   (cd firmware && "../$PIO" run -t upload)
-  echo "Done. (Live builds report Flash ~85%, mock builds ~80%.)"
+  echo "Done. (Live builds report Flash ~62%, mock builds ~43%.)"
 }
 
 wifi() {

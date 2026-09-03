@@ -1,6 +1,6 @@
 # Firmware — M5StickC PLUS2
 
-The gadget's firmware: M5Stack's factory demo (all its toy screens intact)
+The gadget's firmware: M5Stack's factory demo (its toy screens intact, bar the WiFi-scan and BLE ones)
 with a **Balance app** added as the default screen and a tilt-steered
 **Snake** game as the second. The device never talks to
 Monzo — it fetches a pre-formatted payload from the Worker (`../worker/`) over
@@ -15,7 +15,7 @@ Boot lands on the Balance screen. Controls:
 | Button | Short press | Long press (~0.6s) |
 |---|---|---|
 | **A** (big front button) | Balance ↔ LAST 3 transactions | Live: refresh now · Mock: cycle display states |
-| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock, mic, IR, WiFi scan, BLE); the cycle wraps back to Balance | — |
+| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock, mic waveform, IR remote); the cycle wraps back to Balance | — |
 | **PWR** (left side) | Hold ~1s and release: software restart | Keep holding ~3s: hardware power-off (press ~2s to turn on) |
 
 A press on a dimmed screen only wakes it.
@@ -60,8 +60,8 @@ way; the game then only leaves via B from the start or game-over screen.
 
 - **Mock** — no `src/secrets.h`: fixed demo data, long-press A cycles the
   three display states. Builds with zero configuration (what a fresh clone
-  gets). Flash ≈ 80%.
-- **Live** — `src/secrets.h` defines `WORKER_URL`: real fetching. Flash ≈ 85%.
+  gets). Flash ≈ 43%.
+- **Live** — `src/secrets.h` defines `WORKER_URL`: real fetching. Flash ≈ 62%.
 
 `src/secrets.h` is gitignored; copy `src/secrets.h.example` and fill in the
 2.4GHz WiFi credentials, the Worker URL, the `DEVICE_TOKEN` you gave
@@ -139,17 +139,22 @@ Everything under `src/test/` except `app_balance.cpp`, `app_snake.cpp` and
 `screenshot.cpp` is upstream code; these are the deliberate edits (each with its rationale in
 the commit history):
 
-- `test_wifi.cpp` — the WiFi-scan screen tore the radio down with raw
-  `esp_wifi_deinit()`, which breaks the next `WiFi.begin()`; now
-  `WiFi.mode(WIFI_OFF)`.
-- `test_ble.cpp` — Bluedroid (~80–100KB) is released when the BLE screen
-  exits (`deinit(false)`, so it still works on revisit).
+- `test_wifi.cpp` — (vendored but no longer in the screen cycle) the
+  WiFi-scan screen tore the radio down with raw `esp_wifi_deinit()`, which
+  breaks the next `WiFi.begin()`; now `WiFi.mode(WIFI_OFF)`.
+- `test_ble.cpp` — (vendored but no longer in the screen cycle) Bluedroid
+  (~80–100KB) is released when the BLE screen exits (`deinit(false)`, so it
+  still works on revisit).
 - `test_lcd.cpp` — 8-bit framebuffer (see Heap above).
 - `test_key.cpp` — the power-hold pad is latched through `esp_restart()`
   (otherwise a restart powers the board off); the PWR-hold message says what
   actually happens; `checkReboot()`/`checkNext()` drive the power policy.
 - `test.cpp` — `balance_app()` then `snake_app()` run first in the screen
-  cycle; the hold latch is released after boot; mock builds start `Serial`
+  cycle; the WiFi-scan and BLE screens are left out of it (the WiFi screen
+  blocks on a scan the first time it's entered, the BLE screen brings up and
+  tears down the ~80KB Bluetooth stack every visit, and leaving both
+  unreferenced lets the linker drop that stack — about a quarter of the
+  image); the hold latch is released after boot; mock builds start `Serial`
   for the screenshot hook.
 - `test.h` — build-mode detection (`BALANCE_LIVE`), declarations for the
   Balance and Snake apps, power policy and screenshot; `Preferences.h` is included here

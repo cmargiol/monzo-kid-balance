@@ -115,7 +115,6 @@ namespace TEST
         rtc_init();
         imu_init();
         mic_init();
-        ble_init();
 
         if (!is_test_mode)
         {
@@ -153,12 +152,12 @@ namespace TEST
             // rtc_wakeup_test();
         }
 
-        wifi_test();
-
-        display->setFont(&fonts::Font0);
-        display->setTextSize(1);
-        displayUpdate();
-        ble_test();
+        // wifi_test() and ble_test() are left out of the rotation: the WiFi
+        // screen blocks on a network scan the first time it's entered, and
+        // the BLE screen brings up and tears down the ~80KB Bluetooth stack
+        // on every visit. Leaving them unreferenced also lets the linker
+        // drop that stack, about a quarter of the flash image. The
+        // functions stay vendored and untouched.
 
         if (is_test_mode)
         {

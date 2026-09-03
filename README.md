@@ -29,10 +29,12 @@ ship with the device.
 | **Can't reach the Worker** — last known balance, and who to tell | **Monzo needs re-approving** (every ~90 days) |
 | ![Stale screen](docs/images/stale.png) | ![Re-approval screen](docs/images/reauth.png) |
 
-The factory demos survive too — press the side button for the gyro cube and
-friends:
+The side button goes to Snake — steered by tilting the device — and then on
+to the factory demos, gyro cube first:
 
-![Gyro cube demo](docs/images/demo-cube.png)
+| Snake | Gyro cube demo |
+|---|---|
+| ![Snake](docs/images/snake.png) | ![Gyro cube demo](docs/images/demo-cube.png) |
 
 (Screenshots are pixel-exact captures from the device, taken with
 `scripts/screenshot.py`; the amounts are the built-in demo data.)
