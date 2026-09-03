@@ -28,6 +28,8 @@ security trade-offs: `worker/README.md`.
 | — | Post-plan: `scripts/update.sh` day-2 operations | #16 |
 | — | Post-plan: firmware README + docs sweep | #17 |
 | — | Post-plan: help text, friendlier docs, screenshots + photo | #18 |
+| — | Post-plan: Snake (S1 #19, S2 #20) | #19, #20 |
+| — | Post-plan: WiFi/BLE screens out of the rotation; Snake screenshot | #21 |
 
 ## Post-plan epic: Snake
 
