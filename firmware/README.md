@@ -19,7 +19,7 @@ Boot lands on the Balance screen. Controls:
 
 A press on a dimmed screen only wakes it.
 
-Screens:
+Screens (pictured in the root README):
 
 - **Balance** — big amount (£ drawn geometrically: no bundled font has the
   glyph), "spent today" caption, last-update time (UK time, from the Worker).
@@ -66,6 +66,20 @@ Build pins that must not be casually upgraded: `espressif32@6.1.0` and M5GFX
 0.1.11 (fetched from its GitHub tag — the registry dropped the 0.1.x series;
 the demo's hand-rolled display driver targets that API).
 
+## Screenshots for the docs
+
+Mock builds answer the byte `S` on the USB serial port with a dump of the
+current frame. `scripts/screenshot.py` sends it and saves a pixel-exact PNG
+(scaled 3×), prompting you to navigate to each screen in turn:
+
+```bash
+.venv/bin/python scripts/screenshot.py docs/images/balance.png docs/images/last3.png
+```
+
+It uses the pyserial that PlatformIO installs into the venv. Live builds
+don't include the hook, so real balances can't end up in a screenshot by
+accident.
+
 ## How the live fetch works (`src/test/app_balance.cpp`)
 
 - **Verified TLS**: `WiFiClientSecure` validates Cloudflare's certificate
@@ -98,8 +112,9 @@ Every misclassification is recoverable — the policy never calls
 
 ## Changes to the vendored demo
 
-Everything under `src/test/` except `app_balance.cpp` is upstream code; these
-are the deliberate edits (each with its rationale in the commit history):
+Everything under `src/test/` except `app_balance.cpp` and `screenshot.cpp`
+is upstream code; these are the deliberate edits (each with its rationale in
+the commit history):
 
 - `test_wifi.cpp` — the WiFi-scan screen tore the radio down with raw
   `esp_wifi_deinit()`, which breaks the next `WiFi.begin()`; now
@@ -111,10 +126,13 @@ are the deliberate edits (each with its rationale in the commit history):
   (otherwise a restart powers the board off); the PWR-hold message says what
   actually happens; `checkReboot()`/`checkNext()` drive the power policy.
 - `test.cpp` — `balance_app()` runs first in the screen cycle; the hold latch
-  is released after boot.
-- `test.h` — declarations for the Balance app and power policy;
-  `Preferences.h` is included here because PlatformIO's dependency finder
-  misses includes added in `src/test/*.cpp`.
+  is released after boot; mock builds start `Serial` for the screenshot hook.
+- `test.h` — build-mode detection (`BALANCE_LIVE`), declarations for the
+  Balance app, power policy and screenshot; `Preferences.h` is included here
+  because PlatformIO's dependency finder misses includes added in
+  `src/test/*.cpp`.
+- `test_key.cpp` also polls the serial port for the screenshot trigger
+  (mock builds only).
 - `platformio.ini` — ArduinoJson; M5GFX pinned via tag tarball;
   `lib_ldf_mode = deep+`; `monitor_speed = 115200` (the default 9600 shows
   the log as garbage).

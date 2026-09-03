@@ -27,6 +27,7 @@ security trade-offs: `worker/README.md`.
 | — | Post-plan: transaction messages on the gadget, with Greek | #15 |
 | — | Post-plan: `scripts/update.sh` day-2 operations | #16 |
 | — | Post-plan: firmware README + docs sweep | #17 |
+| — | Post-plan: help text, friendlier docs, screenshots + photo | #18 |
 
 (#8 was the PLAN.md introduction itself. The #2→#3 duplication and the #6/#9
 split were stacked-PR merge mishaps, both documented in those PRs.)

@@ -14,6 +14,10 @@ firmware/.vscode/
 
 # Python (local tooling, if any)
 .venv/
+__pycache__/
 
 # OS noise
 .DS_Store
+
+# Editor swap files
+*.swp
