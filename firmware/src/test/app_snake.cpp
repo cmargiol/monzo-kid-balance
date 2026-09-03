@@ -251,7 +251,9 @@ namespace TEST
 #if SNAKE_BUTTON_STEERING
                     snprintf(line, sizeof line, "A: left   B: right");
 #else
-                    snprintf(line, sizeof line, "tilt: %s", DIR_NAME[tiltDir(imu)]);
+                    float lr, ud;
+                    tiltLean(imu, lr, ud);
+                    snprintf(line, sizeof line, "LR %+3.0f UD %+3.0f %s", lr, ud, DIR_NAME[tiltDir(imu)]);
 #endif
                     snake_draw_message("SNAKE", line, "A: play      B: leave");
                 }
@@ -265,6 +267,14 @@ namespace TEST
                 }
                 else if (state == START || state == OVER)
                 {
+                    // Let the hands settle before "level" is measured.
+                    for (int n = 3; n > 0; n--)
+                    {
+                        snprintf(line, sizeof line, "%d", n);
+                        snake_draw_message("HOLD STILL", line, "level is measured now");
+                        _tone(1500, 40);
+                        delay(600);
+                    }
                     _tone(2500, 60);
                     calibrate(imu);
                     resetGame();
@@ -324,6 +334,15 @@ namespace TEST
                 Dir d = tiltTurn(imu, S.dir);
                 if (d != NONE)
                     S.next = d;
+                static uint32_t lastLog = 0;
+                if (millis() - lastLog > 500)
+                {
+                    lastLog = millis();
+                    float lr, ud;
+                    tiltLean(imu, lr, ud);
+                    printf("snake heading=%s lean LR=%+.0f UD=%+.0f -> %s\n",
+                           DIR_NAME[S.dir], lr, ud, DIR_NAME[d]);
+                }
 #endif
                 if (millis() - lastStep >= S.stepMs)
                 {
