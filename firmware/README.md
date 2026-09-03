@@ -1,7 +1,8 @@
 # Firmware — M5StickC PLUS2
 
 The gadget's firmware: M5Stack's factory demo (all its toy screens intact)
-with a **Balance app** added as the default screen. The device never talks to
+with a **Balance app** added as the default screen and a tilt-steered
+**Snake** game as the second. The device never talks to
 Monzo — it fetches a pre-formatted payload from the Worker (`../worker/`) over
 verified TLS and draws it.
 
@@ -14,7 +15,7 @@ Boot lands on the Balance screen. Controls:
 | Button | Short press | Long press (~0.6s) |
 |---|---|---|
 | **A** (big front button) | Balance ↔ LAST 3 transactions | Live: refresh now · Mock: cycle display states |
-| **B** (right side) | Leave to the factory demo cycle (gyro cube, clock, mic, IR, WiFi scan, BLE); the cycle wraps back to Balance | — |
+| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock, mic, IR, WiFi scan, BLE); the cycle wraps back to Balance | — |
 | **PWR** (left side) | Hold ~1s and release: software restart | Keep holding ~3s: hardware power-off (press ~2s to turn on) |
 
 A press on a dimmed screen only wakes it.
@@ -32,6 +33,25 @@ Screens (pictured in the root README):
   SCA lapse; the Worker also emails the parent).
 
 A blue dot in the header means a fetch is in flight.
+
+## Snake
+
+One press of B from the balance screen. Tilt the device to steer: a lean of
+about 15° *across* the direction of travel turns the snake that way — heading
+right, tip the top edge away to go up; heading up, dip the right edge to go
+right — while lean
+along the heading does nothing, so a turn doesn't keep turning. "Level" is
+however the device was being held when the round started (re-measured on
+every start and un-pause), so it works at any resting angle. A starts, pauses and
+restarts; B leaves. A paused round stays on screen for ten minutes, after
+which the normal battery dim/sleep policy applies. Eating speeds the snake up a little; the buzzer chirps
+on food and rasps on death. The start screen shows the live tilt reading —
+useful for checking the axis mapping (`LR_SIGN`/`UD_SIGN` in
+`src/test/app_snake.cpp`) on a new board.
+
+If tilt steering isn't to the player's taste, `SNAKE_BUTTON_STEERING 1` in
+the same file switches to A = turn left, B = turn right, the keypad-phone
+way; the game then only leaves via B from the start or game-over screen.
 
 ## Two build modes
 
@@ -112,8 +132,8 @@ Every misclassification is recoverable — the policy never calls
 
 ## Changes to the vendored demo
 
-Everything under `src/test/` except `app_balance.cpp` and `screenshot.cpp`
-is upstream code; these are the deliberate edits (each with its rationale in
+Everything under `src/test/` except `app_balance.cpp`, `app_snake.cpp` and
+`screenshot.cpp` is upstream code; these are the deliberate edits (each with its rationale in
 the commit history):
 
 - `test_wifi.cpp` — the WiFi-scan screen tore the radio down with raw
@@ -125,10 +145,11 @@ the commit history):
 - `test_key.cpp` — the power-hold pad is latched through `esp_restart()`
   (otherwise a restart powers the board off); the PWR-hold message says what
   actually happens; `checkReboot()`/`checkNext()` drive the power policy.
-- `test.cpp` — `balance_app()` runs first in the screen cycle; the hold latch
-  is released after boot; mock builds start `Serial` for the screenshot hook.
+- `test.cpp` — `balance_app()` then `snake_app()` run first in the screen
+  cycle; the hold latch is released after boot; mock builds start `Serial`
+  for the screenshot hook.
 - `test.h` — build-mode detection (`BALANCE_LIVE`), declarations for the
-  Balance app, power policy and screenshot; `Preferences.h` is included here
+  Balance and Snake apps, power policy and screenshot; `Preferences.h` is included here
   because PlatformIO's dependency finder misses includes added in
   `src/test/*.cpp`.
 - `test_key.cpp` also polls the serial port for the screenshot trigger

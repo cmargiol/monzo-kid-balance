@@ -29,6 +29,16 @@ security trade-offs: `worker/README.md`.
 | — | Post-plan: firmware README + docs sweep | #17 |
 | — | Post-plan: help text, friendlier docs, screenshots + photo | #18 |
 
+## Post-plan epic: Snake
+
+Agreed 2026-09-03. Tilt steering with a button-steering fallback; second
+screen in the cycle.
+
+| # | PR | Status | Depends on |
+|---|----|--------|------------|
+| S1 | Snake screen: grid game, tilt steering with calibration + dead zone, sounds, game over | 🔍 in review | — |
+| S2 | After play-testing: threshold tuning, high score kept in flash, README screenshot | ⏳ | S1 + hardware feedback |
+
 (#8 was the PLAN.md introduction itself. The #2→#3 duplication and the #6/#9
 split were stacked-PR merge mishaps, both documented in those PRs.)
 

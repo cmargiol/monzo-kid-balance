@@ -199,6 +199,11 @@ namespace TEST
         void balance_draw(bool txScreen);
         bool balance_fetch(); // live mode only: kicks off the async fetch task
 
+        /* Snake (app_snake.cpp): tilt-steered, second screen in the cycle */
+        void snake_app();
+        void snake_draw_board();
+        void snake_draw_message(const char *title, const char *line2, const char *footer);
+
         /* Screenshot over serial (screenshot.cpp); triggered from checkReboot() */
         void screenshot();
 

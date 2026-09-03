@@ -1,12 +1,14 @@
 # monzo-kid-balance
 
 A tiny desk gadget that shows a kid their Monzo pocket-money balance — and their
-last three transactions — without needing a phone.
+last three transactions — without needing a phone. It also plays Snake,
+steered by tilting.
 
 Built for an [M5StickC PLUS2](https://docs.m5stack.com/en/core/M5StickC%20PLUS2)
 (ESP32, 1.14" screen, two buttons) sitting on a child's desk. Press a button to
-flip between balance and recent transactions; keep pressing to reach the fun
-factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device.
+flip between balance and recent transactions; the side button goes to Snake,
+then on to the fun factory demo apps (gyro cube, mic scope, IR remote...) that
+ship with the device.
 
 ```
 ┌────────────┐   OAuth2 + refresh    ┌────────────────────┐   HTTPS GET /display   ┌──────────────┐
