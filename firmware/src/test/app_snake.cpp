@@ -36,6 +36,11 @@ namespace TEST
     static const uint32_t MIN_STEP_MS = 130;
     static const uint32_t SPEEDUP_MS = 8;      // per food eaten
 
+    // Early food stays clear of the edges; the clear margin shrinks by one
+    // cell every FOOD_MARGIN_STEP foods until anything goes.
+    static const int FOOD_MARGIN_START = 4;
+    static const int FOOD_MARGIN_STEP = 3;
+
     // Tilt as angles relative to the calibrated neutral, so the dead zone
     // means the same lean whether the device rests flat or stands up. 15° is
     // deliberate but keeps the screen readable.
@@ -66,6 +71,8 @@ namespace TEST
     };
     static Snake S;
     static float _neutralRoll = 0, _neutralPitch = 0;
+    static Preferences _snakePrefs; // high score, survives power-off
+    static int _best = 0;
 
     /** Lean angles in degrees, screen-relative: `roll` is left/right (bank
      *  formula on chip y, defined at any hold), `pitch` is up/down (atan2
@@ -150,10 +157,13 @@ namespace TEST
 
     static void placeFood()
     {
+        int margin = FOOD_MARGIN_START - S.score / FOOD_MARGIN_STEP;
+        if (margin < 0)
+            margin = 0;
         do
         {
-            S.foodX = random(COLS);
-            S.foodY = random(ROWS);
+            S.foodX = margin + random(COLS - 2 * margin);
+            S.foodY = margin + random(ROWS - 2 * margin);
         } while (onSnake(S.foodX, S.foodY, S.len));
     }
 
@@ -241,6 +251,14 @@ namespace TEST
         enum { START, PLAYING, PAUSED, OVER } state = START;
         char line[40];
         uint32_t lastStep = 0, lastIndicator = 0, pausedAt = 0;
+        char footer[40];
+        static bool prefsOpen = false;
+        if (!prefsOpen)
+        {
+            _snakePrefs.begin("snake");
+            _best = _snakePrefs.getInt("best", 0);
+            prefsOpen = true;
+        }
         calibrate(imu); // so the start screen's live readout means something
 
         while (1)
@@ -262,7 +280,8 @@ namespace TEST
                     tiltLean(imu, lr, ud);
                     snprintf(line, sizeof line, "LR %+3.0f UD %+3.0f %s", lr, ud, DIR_NAME[tiltDir(imu)]);
 #endif
-                    snake_draw_message("SNAKE", line, "A: play      B: leave");
+                    snprintf(footer, sizeof footer, "best %d      A: play      B: leave", _best);
+                    snake_draw_message("SNAKE", line, footer);
                 }
             }
 
@@ -341,15 +360,6 @@ namespace TEST
                 Dir d = tiltTurn(imu, S.dir);
                 if (d != NONE)
                     S.next = d;
-                static uint32_t lastLog = 0;
-                if (millis() - lastLog > 500)
-                {
-                    lastLog = millis();
-                    float lr, ud;
-                    tiltLean(imu, lr, ud);
-                    printf("snake heading=%s lean LR=%+.0f UD=%+.0f -> %s\n",
-                           DIR_NAME[S.dir], lr, ud, DIR_NAME[d]);
-                }
 #endif
                 if (millis() - lastStep >= S.stepMs)
                 {
@@ -363,9 +373,22 @@ namespace TEST
                     }
                     else
                     {
-                        _tone(300, 300);
-                        snprintf(line, sizeof line, "score %d", S.score);
-                        snake_draw_message("GAME OVER", line, "A: again     B: leave");
+                        if (S.score > _best)
+                        {
+                            _best = S.score;
+                            _snakePrefs.putInt("best", _best);
+                            snprintf(line, sizeof line, "NEW BEST %d!", S.score);
+                            snake_draw_message("GAME OVER", line, "A: again     B: leave");
+                            _tone(1500, 80); delay(90);
+                            _tone(2000, 80); delay(90);
+                            _tone(2600, 160);
+                        }
+                        else
+                        {
+                            _tone(300, 300);
+                            snprintf(line, sizeof line, "score %d   best %d", S.score, _best);
+                            snake_draw_message("GAME OVER", line, "A: again     B: leave");
+                        }
                         state = OVER;
                     }
                 }

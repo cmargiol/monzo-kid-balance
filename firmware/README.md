@@ -44,8 +44,11 @@ along the heading does nothing, so a turn doesn't keep turning. "Level" is
 however the device was being held when the round started (re-measured on
 every start and un-pause), so it works at any resting angle. A starts, pauses and
 restarts; B leaves. A paused round stays on screen for ten minutes, after
-which the normal battery dim/sleep policy applies. Eating speeds the snake up a little; the buzzer chirps
-on food and rasps on death. The start screen shows the live tilt reading —
+which the normal battery dim/sleep policy applies. Early food spawns clear
+of the edges and the clear margin shrinks as the score grows; the snake
+speeds up a little per food. The high score is kept in flash and shown on
+the start and game-over screens, with a jingle when it's beaten. The buzzer
+chirps on food and rasps on death. The start screen shows the live tilt reading —
 useful for checking the axis mapping (`LR_SIGN`/`UD_SIGN` in
 `src/test/app_snake.cpp`) on a new board.
 
