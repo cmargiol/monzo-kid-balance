@@ -135,6 +135,7 @@ namespace TEST
         // Ours first: the balance is the default screen on boot, and the
         // demo cycle wraps back to it after the last factory screen.
         balance_app();
+        snake_app(); // one press of B from the balance screen
 
         imu_test();
         rtc_test();
