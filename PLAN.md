@@ -36,8 +36,8 @@ screen in the cycle.
 
 | # | PR | Status | Depends on |
 |---|----|--------|------------|
-| S1 | Snake screen: grid game, tilt steering with calibration + dead zone, sounds, game over | 🔍 in review | — |
-| S2 | After play-testing: threshold tuning, high score kept in flash, README screenshot | ⏳ | S1 + hardware feedback |
+| S1 | Snake screen: grid game, tilt steering with calibration + dead zone, sounds, game over | ✅ merged (#19) | — |
+| S2 | Difficulty ramp (food clear of edges early), high score in flash | 🔍 in review (#20) | S1 |
 
 (#8 was the PLAN.md introduction itself. The #2→#3 duplication and the #6/#9
 split were stacked-PR merge mishaps, both documented in those PRs.)
