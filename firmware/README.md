@@ -1,6 +1,6 @@
 # Firmware — M5StickC PLUS2
 
-The gadget's firmware: M5Stack's factory demo (all its toy screens intact)
+The gadget's firmware: M5Stack's factory demo (its toy screens intact, bar the WiFi-scan and BLE ones)
 with a **Balance app** added as the default screen and a tilt-steered
 **Snake** game as the second. The device never talks to
 Monzo — it fetches a pre-formatted payload from the Worker (`../worker/`) over
