@@ -37,9 +37,11 @@ A blue dot in the header means a fetch is in flight.
 ## Snake
 
 One press of B from the balance screen. Tilt the device to steer: a lean of
-about 15° in the dominant direction turns the snake, and "level" is however
-the device was being held when the round started (re-measured on every
-start and un-pause), so it works at any resting angle. A starts, pauses and
+about 15° *across* the direction of travel turns the snake that way — heading
+right, lean down to go down; heading up, lean right to go right — while lean
+along the heading does nothing, so a turn doesn't keep turning. "Level" is
+however the device was being held when the round started (re-measured on
+every start and un-pause), so it works at any resting angle. A starts, pauses and
 restarts; B leaves. A paused round stays on screen for ten minutes, after
 which the normal battery dim/sleep policy applies. Eating speeds the snake up a little; the buzzer chirps
 on food and rasps on death. The start screen shows the live tilt reading —

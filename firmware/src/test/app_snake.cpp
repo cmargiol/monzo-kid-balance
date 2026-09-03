@@ -3,9 +3,12 @@
  * from the balance screen.
  *
  * Controls (tilt steering, the default):
- *   tilt   steer — a lean past the dead zone in the dominant direction turns
- *          the snake; "level" is however the device was held when the round
- *          started, so it works at any resting angle
+ *   tilt   steer — a lean ACROSS the direction of travel turns the snake
+ *          that way (heading right: lean down to turn down; heading up: lean
+ *          right to turn right); lean along the heading does nothing, so
+ *          after a turn the same lean doesn't keep turning it. "Level" is
+ *          however the device was held when the round started, so it works
+ *          at any resting angle
  *   A      start / pause / play again
  *   B      leave to the next demo screen
  *
@@ -90,17 +93,40 @@ namespace TEST
         _neutralPitch = sp / 10;
     }
 
-    static Dir tiltDir(MPU6886 &imu)
+    /** Lean relative to neutral: lr > 0 is right, ud > 0 is down. */
+    static void tiltLean(MPU6886 &imu, float &lr, float &ud)
     {
         float roll, pitch;
         tiltAngles(imu, roll, pitch);
-        float lr = LR_SIGN * wrapDeg(roll - _neutralRoll);
-        float ud = UD_SIGN * wrapDeg(pitch - _neutralPitch);
+        lr = LR_SIGN * wrapDeg(roll - _neutralRoll);
+        ud = UD_SIGN * wrapDeg(pitch - _neutralPitch);
+    }
+
+    /** Absolute lean direction — the start screen's readout for checking
+     *  the axis mapping. Not used to steer. */
+    static Dir tiltDir(MPU6886 &imu)
+    {
+        float lr, ud;
+        tiltLean(imu, lr, ud);
         if (fabsf(lr) < TILT_DEAD_DEG && fabsf(ud) < TILT_DEAD_DEG)
             return NONE;
         if (fabsf(lr) >= fabsf(ud))
             return lr > 0 ? RIGHT : LEFT;
         return ud > 0 ? DOWN : UP;
+    }
+
+    /** Steering: only the lean across the direction of travel counts. */
+    static Dir tiltTurn(MPU6886 &imu, Dir heading)
+    {
+        float lr, ud;
+        tiltLean(imu, lr, ud);
+        bool vertical = (heading == UP || heading == DOWN);
+        float across = vertical ? lr : ud;
+        if (fabsf(across) < TILT_DEAD_DEG)
+            return NONE;
+        if (vertical)
+            return across > 0 ? RIGHT : LEFT;
+        return across > 0 ? DOWN : UP;
     }
 
     /** Is (x, y) one of the first `count` segments from the head? */
@@ -295,8 +321,8 @@ namespace TEST
             {
                 power_input(); // steering by tilt counts as activity
 #if !SNAKE_BUTTON_STEERING
-                Dir d = tiltDir(imu);
-                if (d != NONE && d != (Dir)((S.dir + 2) % 4))
+                Dir d = tiltTurn(imu, S.dir);
+                if (d != NONE)
                     S.next = d;
 #endif
                 if (millis() - lastStep >= S.stepMs)
