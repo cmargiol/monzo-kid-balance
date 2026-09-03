@@ -31,6 +31,16 @@
 
 #include "arduinoFFT.h"
 
+// Build mode. A secrets.h that defines WORKER_URL makes the live build (real
+// fetching); without it this is the mock build: fixed demo data, plus the
+// serial screenshot hook used for the documentation images.
+#if __has_include("../secrets.h")
+#include "../secrets.h"
+#endif
+#ifdef WORKER_URL
+#define BALANCE_LIVE 1
+#endif
+
 #define display Disbuff
 #define displayUpdate Displaybuff
 
@@ -188,6 +198,9 @@ namespace TEST
         void balance_app();
         void balance_draw(bool txScreen);
         bool balance_fetch(); // live mode only: kicks off the async fetch task
+
+        /* Screenshot over serial (screenshot.cpp); triggered from checkReboot() */
+        void screenshot();
 
         /* Power policy (app_balance.cpp): full brightness while in use; on
            battery, dim after 20s idle and deep-sleep (front button wakes)

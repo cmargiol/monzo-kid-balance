@@ -17,6 +17,24 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
                                                                                    └──────────────┘
 ```
 
+## What it looks like
+
+![The gadget on a desk, showing the balance screen](docs/images/device.jpg)
+
+| Balance | Last three, with the sender's message |
+|---|---|
+| ![Balance screen](docs/images/balance.png) | ![Transactions screen](docs/images/last3.png) |
+| **Can't reach the Worker** — last known balance, and who to tell | **Monzo needs re-approving** (every ~90 days) |
+| ![Stale screen](docs/images/stale.png) | ![Re-approval screen](docs/images/reauth.png) |
+
+The factory demos survive too — press the side button for the gyro cube and
+friends:
+
+![Gyro cube demo](docs/images/demo-cube.png)
+
+(Screenshots are pixel-exact captures from the device, taken with
+`scripts/screenshot.py`; the amounts are the built-in demo data.)
+
 ## Design principles
 
 - **The device never talks to Monzo.** Monzo OAuth tokens grant far more than
@@ -42,14 +60,23 @@ factory demo apps (gyro cube, mic scope, IR remote...) that ship with the device
 | `worker/`   | Cloudflare Worker (vanilla JS, zero deps): Monzo OAuth, token rotation, webhook + cron cache refresh, `/display` endpoint |
 | `firmware/` | PlatformIO firmware for the M5StickC PLUS2 — a vendored copy of M5Stack's factory demo with a Balance app added as the default screen |
 | `docs/`     | Notes, including the Monzo API findings that shaped the design |
-| `scripts/`  | `update.sh` — the recurring chores (deploy, flash, change WiFi) |
+| `scripts/`  | `update.sh` (deploy, flash, change WiFi — one command each) and `screenshot.py` |
 
-## Day-2 operations
+## Keeping it running
 
-`scripts/update.sh` automates the recurring chores: `worker` (test + deploy),
-`device` (build + flash over USB), `wifi` (edit `secrets.h` — e.g. a new home
-network — then flash), `all`. One-time tooling setup: Node (for `npx wrangler`)
-and PlatformIO in a project venv:
+Once set up, there are only three things you might ever do, and each is one
+command: `wifi` when you move house or change the WiFi password, `worker` to
+deploy a Worker change, `device` to flash a firmware change.
+
+```bash
+scripts/update.sh wifi
+scripts/update.sh worker
+scripts/update.sh device
+```
+
+`scripts/update.sh --help` says the same thing.
+
+One-time tooling: Node (for `npx wrangler`) and PlatformIO in a project venv:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install platformio

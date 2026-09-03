@@ -149,6 +149,14 @@ namespace TEST
         // function because every screen's loop already calls it.
         power_tick();
 
+#ifndef BALANCE_LIVE
+        // Documentation screenshots: 'S' over serial dumps the frame.
+        if (Serial.available() && Serial.read() == 'S')
+        {
+            screenshot();
+        }
+#endif
+
         /* Long press power off */
         if (!btnPWR.read())
         {

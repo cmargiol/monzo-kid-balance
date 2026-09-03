@@ -20,15 +20,11 @@
  */
 #include "test.h"
 
-#if __has_include("../secrets.h")
-#include "../secrets.h"
-#endif
 #ifndef DISPLAY_TITLE
 #define DISPLAY_TITLE "MY MONEY" // personalised in secrets.h, kept out of the repo
 #endif
 
-#ifdef WORKER_URL
-#define BALANCE_LIVE 1
+#ifdef BALANCE_LIVE
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include "../ca_certs.h"

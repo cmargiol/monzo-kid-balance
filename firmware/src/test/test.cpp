@@ -52,6 +52,9 @@ namespace TEST
 
     void TEST::setup()
     {
+#ifndef BALANCE_LIVE
+        Serial.begin(115200); // screenshot trigger (see screenshot.cpp)
+#endif
         hardware_init();
         key_init();
         lcd_init();
