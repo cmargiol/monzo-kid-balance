@@ -42,10 +42,12 @@ namespace TEST
     static const float TILT_DEAD_DEG = 15.0f;
     // The IMU is mounted rotated relative to the screen: its y axis runs
     // along the screen's long side (left-right) and its x axis along the
-    // short side (up-down). Signs were read off the start-screen readout:
-    // left edge down must be negative LR, top edge away must be positive UD.
+    // short side (up-down). Signs were read off the start-screen readout and
+    // set so that left edge down is negative LR and tipping the top edge
+    // away from you is negative UD — "push forward" steers up, like a
+    // joystick, rather than like a marble rolling to the low edge.
     static const float LR_SIGN = -1.0f;
-    static const float UD_SIGN = 1.0f;
+    static const float UD_SIGN = -1.0f;
     static const uint32_t PAUSE_KEEPAWAKE_MS = 10 * 60 * 1000;
 
     enum Dir { UP, RIGHT, DOWN, LEFT, NONE };

@@ -38,7 +38,8 @@ A blue dot in the header means a fetch is in flight.
 
 One press of B from the balance screen. Tilt the device to steer: a lean of
 about 15° *across* the direction of travel turns the snake that way — heading
-right, lean down to go down; heading up, lean right to go right — while lean
+right, tip the top edge away to go up; heading up, dip the right edge to go
+right — while lean
 along the heading does nothing, so a turn doesn't keep turning. "Level" is
 however the device was being held when the round started (re-measured on
 every start and un-pause), so it works at any resting angle. A starts, pauses and
