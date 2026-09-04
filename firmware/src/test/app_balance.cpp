@@ -23,6 +23,12 @@
 #ifndef DISPLAY_TITLE
 #define DISPLAY_TITLE "MY MONEY" // personalised in secrets.h, kept out of the repo
 #endif
+#ifndef DEVICE_TZ
+// POSIX timezone rule; default is UK time with summer time. Only the clock
+// demo screen shows local time — the balance header's time comes from the
+// Worker in UK time regardless.
+#define DEVICE_TZ "GMT0BST,M3.5.0/1,M10.5.0"
+#endif
 
 #ifdef BALANCE_LIVE
 #include <WiFiClientSecure.h>
@@ -416,9 +422,14 @@ namespace TEST
     /** TLS cert validation needs sane wall-clock time (within years). */
     static bool ensure_time()
     {
+        // The timezone is set every time, not only when NTP runs: a software
+        // restart keeps the system clock (so the sync below is skipped) but
+        // loses the TZ setting, and the clock chip would then get UTC.
+        setenv("TZ", DEVICE_TZ, 1);
+        tzset();
         if (time(nullptr) > 1700000000) // any post-2023 time = already synced
             return true;
-        configTime(0, 0, "pool.ntp.org", "time.google.com");
+        configTzTime(DEVICE_TZ, "pool.ntp.org", "time.google.com");
         uint32_t t0 = millis();
         while (time(nullptr) < 1700000000 && millis() - t0 < 10000)
         {
@@ -557,6 +568,10 @@ namespace TEST
             {
                 _done = false;
                 _lastFetch = millis();
+                // Keep the clock chip (the clock demo screen) on local
+                // time, including across DST changes; a no-op until NTP
+                // has run.
+                rtc_set_from_localtime();
                 if (_staging.state == BAL_OK)
                 {
                     _data = _staging;

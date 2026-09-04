@@ -68,6 +68,27 @@ namespace TEST
         }
     }
 
+    /**
+     * Copy the ESP32's local time (set from NTP, timezone DEVICE_TZ) into
+     * the clock chip, which nothing else ever sets — it restarts from
+     * 00:00:00 whenever the battery runs flat. A no-op until the system
+     * clock has been synced. Called on the UI task only: the chip shares
+     * the I2C bus with the motion sensor.
+     */
+    void rtc_set_from_localtime()
+    {
+        struct tm t;
+        if (!getLocalTime(&t, 0)) // 0: don't wait for a sync, just report
+            return;
+        RTC_DateTypeDef rd = {(uint8_t)t.tm_wday, (uint8_t)(t.tm_mon + 1), (uint8_t)t.tm_mday,
+                              (uint16_t)(t.tm_year + 1900)};
+        RTC_TimeTypeDef rt = {(uint8_t)t.tm_hour, (uint8_t)t.tm_min, (uint8_t)t.tm_sec};
+        // Date first: the chip keeps counting between the two writes, and
+        // this order can't leave the date a day behind across midnight.
+        _rtc.SetDate(&rd);
+        _rtc.SetTime(&rt);
+    }
+
     void TEST::rtc_init()
     {
         // rtc.begin();

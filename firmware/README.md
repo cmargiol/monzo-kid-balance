@@ -15,7 +15,7 @@ Boot lands on the Balance screen. Controls:
 | Button | Short press | Long press (~0.6s) |
 |---|---|---|
 | **A** (big front button) | Balance ↔ LAST 3 transactions | Live: refresh now · Mock: cycle display states |
-| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock, mic waveform, IR remote); the cycle wraps back to Balance | — |
+| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock — local time once the device has synced, mic waveform, IR remote); the cycle wraps back to Balance | — |
 | **PWR** (left side) | Hold ~1s and release: software restart | Keep holding ~3s: hardware power-off (press ~2s to turn on) |
 
 A press on a dimmed screen only wakes it.
@@ -65,8 +65,9 @@ way; the game then only leaves via B from the start or game-over screen.
 
 `src/secrets.h` is gitignored; copy `src/secrets.h.example` and fill in the
 2.4GHz WiFi credentials, the Worker URL, the `DEVICE_TOKEN` you gave
-`wrangler secret put`, and `DISPLAY_TITLE` (the header text — keep personal
-names here, not in the repo). Placeholder values are detected and shown on
+`wrangler secret put`, `DISPLAY_TITLE` (the header text — keep personal
+names here, not in the repo), and optionally `DEVICE_TZ` (the clock screen's
+timezone, UK by default). Placeholder values are detected and shown on
 screen instead of fetch-looping.
 
 ## Build and flash
@@ -110,6 +111,11 @@ accident.
   ISRG X1/X2). One NTP sync after WiFi join supplies the clock the check
   needs. If Cloudflare ever leaves both root families the device fails safe
   (stale screen) until the bundle is updated.
+- **Clock chip**: after each fetch the synced time is written, as `DEVICE_TZ`
+  local time, into the stick's clock chip, so the clock demo screen is right
+  and stays right across power-offs and restarts. The chip only restarts
+  from 00:00:00 when the battery runs flat, and the next completed fetch
+  corrects it again.
 - **Async**: the fetch runs on its own 12KB FreeRTOS task, so buttons and the
   PWR restart keep working through the worst case ~35s of WiFi/NTP/HTTP
   timeouts. It writes only a staging struct; the UI loop copies it on
@@ -162,6 +168,8 @@ the commit history):
   `src/test/*.cpp`.
 - `test_key.cpp` also polls the serial port for the screenshot trigger
   (mock builds only).
+- `test_rtc.cpp` — `rtc_set_from_localtime()` writes the NTP-synced local
+  time into the clock chip; the demo never set it.
 - `platformio.ini` — ArduinoJson; M5GFX pinned via tag tarball;
   `lib_ldf_mode = deep+`; `monitor_speed = 115200` (the default 9600 shows
   the log as garbage).

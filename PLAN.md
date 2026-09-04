@@ -30,6 +30,7 @@ security trade-offs: `worker/README.md`.
 | — | Post-plan: help text, friendlier docs, screenshots + photo | #18 |
 | — | Post-plan: Snake (S1 #19, S2 #20) | #19, #20 |
 | — | Post-plan: WiFi/BLE screens out of the rotation; Snake screenshot | #21 |
+| — | Post-plan: clock chip set from NTP with a timezone setting | #22 |
 
 ## Post-plan epic: Snake
 
