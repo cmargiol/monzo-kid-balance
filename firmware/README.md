@@ -15,7 +15,7 @@ Boot lands on the Balance screen. Controls:
 | Button | Short press | Long press (~0.6s) |
 |---|---|---|
 | **A** (big front button) | Balance ↔ LAST 3 transactions | Live: refresh now · Mock: cycle display states |
-| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock — local time once the device has synced, mic waveform, IR remote); the cycle wraps back to Balance | — |
+| **B** (right side) | Next screen: Snake, then the factory demos (gyro cube, clock — local time and date once the device has synced, mic waveform, IR remote); the cycle wraps back to Balance | — |
 | **PWR** (left side) | Hold ~1s and release: software restart | Keep holding ~3s: hardware power-off (press ~2s to turn on) |
 
 A press on a dimmed screen only wakes it.
@@ -112,9 +112,10 @@ accident.
   the check needs and re-syncs it every few hours from then on. If Cloudflare ever leaves both root families the device fails safe
   (stale screen) until the bundle is updated.
 - **Clock chip**: each completed NTP sync is written, as `DEVICE_TZ` local
-  time, into the stick's clock chip, so the clock demo screen is right and
-  stays right across power-offs and restarts. The chip only restarts from
-  00:00:00 when the battery runs flat, and the next sync corrects it again.
+  time and date, into the stick's clock chip, so the clock demo screen is
+  right and stays right across power-offs and restarts. The chip only
+  restarts from 00:00:00 when the battery runs flat, and the next sync
+  corrects it again.
 - **Async**: the fetch runs on its own 12KB FreeRTOS task, so buttons and the
   PWR restart keep working through the worst case ~35s of WiFi/NTP/HTTP
   timeouts. It writes only a staging struct; the UI loop copies it on
@@ -168,7 +169,9 @@ the commit history):
 - `test_key.cpp` also polls the serial port for the screenshot trigger
   (mock builds only).
 - `test_rtc.cpp` — `rtc_set_from_localtime()` writes the NTP-synced local
-  time into the clock chip; the demo never set it.
+  time into the clock chip; the demo never set it. The clock screen prints
+  the day and date under the time, or `clock not set yet` while the chip
+  still reads back its power-on values.
 - `platformio.ini` — ArduinoJson; M5GFX pinned via tag tarball;
   `lib_ldf_mode = deep+`; `monitor_speed = 115200` (the default 9600 shows
   the log as garbage).

@@ -16,6 +16,31 @@ namespace TEST
 
     cplus_RTC _rtc;
 
+    /**
+     * "Fri 5 Sep 2026" for the clock screen, or a note that the clock has
+     * never been set. The chip raises VL (bit 7 of the seconds register)
+     * whenever its supply has dropped far enough to lose the count, and
+     * clears it on the next write; until then the date registers hold
+     * whatever they powered up with, which is not always out of range, so
+     * the flag is the only reliable way to avoid printing a date that looks
+     * real. The range check catches a corrupted register that kept its flag.
+     * Returns a pointer to a static buffer: UI task only.
+     */
+    static const char *date_line(const RTC_DateTypeDef &d)
+    {
+        static const char *DAYS[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+        static const char *MONTHS[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        static char line[24];
+        bool never_set = _rtc.ReadReg(0x02) & 0x80;
+        if (never_set || d.Year < 2024 || d.Year > 2100 || d.Month < 1 ||
+            d.Month > 12 || d.WeekDay > 6 || d.Date < 1 || d.Date > 31)
+            return "clock not set yet";
+        snprintf(line, sizeof(line), "%s %d %s %d", DAYS[d.WeekDay], d.Date,
+                 MONTHS[d.Month - 1], d.Year);
+        return line;
+    }
+
     void TEST::DisplayRTC()
     {
 
@@ -25,6 +50,7 @@ namespace TEST
         // Displaybuff();
         _rtc.GetBm8563Time();
         RTC_TimeTypeDef time;
+        RTC_DateTypeDef date;
         _rtc.GetTime(&time);
 
         Disbuff->setTextSize(4);
@@ -35,14 +61,22 @@ namespace TEST
         {
             Disbuff->fillRect(0, 0, 240, 135, Disbuff->color565(0, 0, 0));
             _rtc.GetTime(&time);
+            _rtc.GetDate(&date);
             Disbuff->setTextSize(4);
             Disbuff->setTextColor(TFT_WHITE);
-            Disbuff->setCursor(25, 50);
+            Disbuff->setCursor(25, 48);
             Disbuff->printf("%02d:%02d:%02d", time.Hours, time.Minutes,
                             time.Seconds);
+            if (!is_test_mode) // the factory prompt occupies this band
+            {
+                Disbuff->setTextSize(2);
+                Disbuff->setTextColor(TFT_LIGHTGREY);
+                Disbuff->drawCenterString(date_line(date), 120, 96);
+            }
             Disbuff->fillRect(0, 0, 240, 25, Disbuff->color565(20, 20, 20));
             Disbuff->setTextSize(2);
-            Disbuff->drawString("BMP8563 RTC Time", 26, 5, 1);
+            Disbuff->setTextColor(TFT_WHITE);
+            Disbuff->drawCenterString("CLOCK", 120, 5);
 
             if (is_test_mode)
             {
