@@ -426,13 +426,14 @@ namespace TEST
         // Start the NTP client once per boot, whatever the clock says — a
         // deep-sleep wake or a restart carries over a plausible-looking time
         // that drifted on the sleep oscillator (minutes per day). It then
-        // re-syncs hourly for the rest of the uptime, and each completed
-        // sync is what updates the clock chip (see balance_app). This also
-        // (re)applies the DEVICE_TZ timezone, which a restart forgets.
+        // re-syncs every few hours for the rest of the uptime (the awake
+        // clock runs off the crystal and drifts about a second a day), and
+        // each completed sync is what updates the clock chip (see
+        // balance_app). This also (re)applies the DEVICE_TZ timezone, which
+        // a restart forgets.
         static bool sntpStarted = false;
         if (!sntpStarted)
         {
-            sntp_set_sync_interval(60 * 60 * 1000);
             configTzTime(DEVICE_TZ, "pool.ntp.org", "time.google.com");
             sntpStarted = true;
         }

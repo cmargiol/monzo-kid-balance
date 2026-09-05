@@ -109,7 +109,7 @@ accident.
 - **Verified TLS**: `WiFiClientSecure` validates Cloudflare's certificate
   against `src/ca_certs.h` — six public roots (Google Trust Services R1–R4,
   ISRG X1/X2). The NTP client, started at every boot, supplies the clock
-  the check needs and re-syncs it hourly from then on. If Cloudflare ever leaves both root families the device fails safe
+  the check needs and re-syncs it every few hours from then on. If Cloudflare ever leaves both root families the device fails safe
   (stale screen) until the bundle is updated.
 - **Clock chip**: each completed NTP sync is written, as `DEVICE_TZ` local
   time, into the stick's clock chip, so the clock demo screen is right and
