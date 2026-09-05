@@ -33,6 +33,7 @@
 #ifdef BALANCE_LIVE
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include <esp_sntp.h>
 #include "../ca_certs.h"
 #endif
 
@@ -422,14 +423,21 @@ namespace TEST
     /** TLS cert validation needs sane wall-clock time (within years). */
     static bool ensure_time()
     {
-        // The timezone is set every time, not only when NTP runs: a software
-        // restart keeps the system clock (so the sync below is skipped) but
-        // loses the TZ setting, and the clock chip would then get UTC.
-        setenv("TZ", DEVICE_TZ, 1);
-        tzset();
-        if (time(nullptr) > 1700000000) // any post-2023 time = already synced
+        // Start the NTP client once per boot, whatever the clock says — a
+        // deep-sleep wake or a restart carries over a plausible-looking time
+        // that drifted on the sleep oscillator (minutes per day). It then
+        // re-syncs hourly for the rest of the uptime, and each completed
+        // sync is what updates the clock chip (see balance_app). This also
+        // (re)applies the DEVICE_TZ timezone, which a restart forgets.
+        static bool sntpStarted = false;
+        if (!sntpStarted)
+        {
+            sntp_set_sync_interval(60 * 60 * 1000);
+            configTzTime(DEVICE_TZ, "pool.ntp.org", "time.google.com");
+            sntpStarted = true;
+        }
+        if (time(nullptr) > 1700000000) // plausible: don't hold up the fetch
             return true;
-        configTzTime(DEVICE_TZ, "pool.ntp.org", "time.google.com");
         uint32_t t0 = millis();
         while (time(nullptr) < 1700000000 && millis() - t0 < 10000)
         {
@@ -568,10 +576,6 @@ namespace TEST
             {
                 _done = false;
                 _lastFetch = millis();
-                // Keep the clock chip (the clock demo screen) on local
-                // time, including across DST changes; a no-op until NTP
-                // has run.
-                rtc_set_from_localtime();
                 if (_staging.state == BAL_OK)
                 {
                     _data = _staging;
@@ -600,6 +604,14 @@ namespace TEST
             {
                 wasInFlight = _inFlight;
                 dirty = true; // header dot appears/disappears
+            }
+            if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED)
+            {
+                // Reported once per completed sync. Only a fresh sync is
+                // worth writing into the clock chip: after a deep-sleep wake
+                // the carried-over time has drifted, and the device may
+                // sleep again before any later correction.
+                rtc_set_from_localtime();
             }
 #endif
             if (dirty)

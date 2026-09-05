@@ -108,14 +108,13 @@ accident.
 
 - **Verified TLS**: `WiFiClientSecure` validates Cloudflare's certificate
   against `src/ca_certs.h` — six public roots (Google Trust Services R1–R4,
-  ISRG X1/X2). One NTP sync after WiFi join supplies the clock the check
-  needs. If Cloudflare ever leaves both root families the device fails safe
+  ISRG X1/X2). The NTP client, started at every boot, supplies the clock
+  the check needs and re-syncs it hourly from then on. If Cloudflare ever leaves both root families the device fails safe
   (stale screen) until the bundle is updated.
-- **Clock chip**: after each fetch the synced time is written, as `DEVICE_TZ`
-  local time, into the stick's clock chip, so the clock demo screen is right
-  and stays right across power-offs and restarts. The chip only restarts
-  from 00:00:00 when the battery runs flat, and the next completed fetch
-  corrects it again.
+- **Clock chip**: each completed NTP sync is written, as `DEVICE_TZ` local
+  time, into the stick's clock chip, so the clock demo screen is right and
+  stays right across power-offs and restarts. The chip only restarts from
+  00:00:00 when the battery runs flat, and the next sync corrects it again.
 - **Async**: the fetch runs on its own 12KB FreeRTOS task, so buttons and the
   PWR restart keep working through the worst case ~35s of WiFi/NTP/HTTP
   timeouts. It writes only a staging struct; the UI loop copies it on
