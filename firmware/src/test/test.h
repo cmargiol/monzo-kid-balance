@@ -125,6 +125,7 @@ extern const unsigned char icon_ble_disconnect[4608];
 
 namespace TEST
 {
+    void rtc_set_from_localtime(); // test_rtc.cpp
 
     class TEST
     {
